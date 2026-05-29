@@ -1,75 +1,157 @@
 <div class="panel" data-panel="reference">
-        <div class="header">
-          <div class="breadcrumb">Reference</div>
-          <h1>Reference card</h1>
-          <p class="header-subtitle">Things you might need to look up later.</p>
-        </div>
+  <div class="header">
+    <div class="breadcrumb">Reference</div>
+    <h1>Reference card</h1>
+    <p class="header-subtitle">Things you might need to look up later.</p>
+  </div>
 
-        <h2>Solution structure (final)</h2>
-        <pre><code>/src
-  /Documents
-    Documents.Domain
-    Documents.Application
-    Documents.Infrastructure
-    Documents.Api
-  /CustomerOnboarding
-    CustomerOnboarding.Domain
-    CustomerOnboarding.Application
-    CustomerOnboarding.Infrastructure
-    CustomerOnboarding.Api
-  /Ui
-    CustomerOnboarding.Ui
-/tests
-  Documents.Tests
-  CustomerOnboarding.Tests
-/notes
-  orientation.md (from Milestone 1)
-  decisions.md (where you log design choices)
+  <h2>The layered structure</h2>
+  <p>Both services use the same layers. Dependencies point inward, toward Domain.</p>
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>Holds</th><th>References</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Domain</strong></td><td>Entities, enums, business rules</td><td>Nothing</td></tr>
+      <tr><td><strong>Application</strong></td><td>Interfaces, DTOs, validation</td><td>Domain, Common</td></tr>
+      <tr><td><strong>Service</strong></td><td>Use-case classes (business orchestration)</td><td>Application, Domain</td></tr>
+      <tr><td><strong>Store</strong></td><td>EF Core, DbContext, interface implementations</td><td>Application, Domain</td></tr>
+      <tr><td><strong>Api</strong></td><td>Controllers, Program.cs, composition root</td><td>Service, Store, Application, Domain</td></tr>
+      <tr><td><strong>Common</strong></td><td>Shared helpers (e.g. ServiceResult)</td><td>Nothing or Domain</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Solution structure (per service)</h2>
+  <pre><code>/CustomerService
+  CustomerService.Domain
+  CustomerService.Application
+  CustomerService.Service
+  CustomerService.Store
+  CustomerService.Api
+  CustomerService.Common
+  CustomerService.Web      (Blazor UI, Part 1 Step 8)
+  CustomerService.Tests
+
+/DocumentService
+  DocumentService.Domain
+  DocumentService.Application
+  DocumentService.Service
+  DocumentService.Store
+  DocumentService.Api
+  DocumentService.Common
+  DocumentService.Tests
+
 docker-compose.yml
 .env
-README.md</code></pre>
+README.md
+/notes
+  orientation.md
+  decisions.md</code></pre>
 
-        <h2>The Azurite connection string</h2>
-        <p>Memorize this, it's the same everywhere:</p>
-        <pre><code>UseDevelopmentStorage=true</code></pre>
-        <p>This is a magic shorthand that the Azure SDK resolves to:</p>
-        <pre><code>DefaultEndpointsProtocol=http;
-AccountName=devstoreaccount1;
-AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;
-BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;</code></pre>
-        <p>That account key is <strong>not a secret</strong>. It's hardcoded by Microsoft for all Azurite users. Don't be surprised when you see it in tutorials.</p>
+  <h2>Solution workflows (the finished system)</h2>
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div>These two diagrams describe the <strong>completed two-service system</strong>, the state you reach at the end of Part 2. While you're building Part 1 (the customer service alone), the document service and the cross-service call don't exist yet. Treat these as the destination, not the starting point.</div>
+  </div>
 
-        <h2>Inside Docker, host names change</h2>
-        <table>
-          <thead>
-            <tr><th>What</th><th>Outside Docker</th><th>Inside Docker</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Azurite blob</td><td><code>http://localhost:10000</code></td><td><code>http://azurite:10000</code></td></tr>
-            <tr><td>MSSQL</td><td><code>localhost,1433</code></td><td><code>mssql,1433</code></td></tr>
-            <tr><td>Documents.Api</td><td><code>http://localhost:5001</code></td><td><code>http://documents-api:8080</code></td></tr>
-            <tr><td>CustomerOnboarding.Api</td><td><code>http://localhost:5002</code></td><td><code>http://customeronboarding-api:8080</code></td></tr>
-          </tbody>
-        </table>
+  <h3>Upload flow</h3>
+  <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Customer
+    participant UI as CustomerService.Web
+    participant CO as CustomerService.Api
+    participant CODB as Customer DB
+    participant DOC as DocumentService.Api
+    participant DOCDB as Document DB
+    participant BLOB as Azurite (Blob)
 
-        <h2>EF Core migration commands</h2>
-        <pre><code># Create a migration
+    User->>UI: Selects file, clicks upload
+    UI->>CO: POST document (file + user info)
+    activate CO
+    CO->>CODB: Load customer / application
+    CODB-->>CO: Record + state
+    Note over CO: Validate ownership and state
+    CO->>DOC: POST file (stream + user info)
+    activate DOC
+    DOC->>BLOB: UploadAsync(stream)
+    BLOB-->>DOC: Blob reference
+    DOC->>DOCDB: Save document metadata
+    DOCDB-->>DOC: Document Id
+    DOC-->>CO: 201 Created (documentId)
+    deactivate DOC
+    CO->>CODB: Save document reference
+    CODB-->>CO: OK
+    CO-->>UI: 201 Created (documentId)
+    deactivate CO
+    UI-->>User: Shows success, refreshes list
+  </div>
+
+  <h3>View application flow</h3>
+  <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Customer
+    participant UI as CustomerService.Web
+    participant CO as CustomerService.Api
+    participant CODB as Customer DB
+    participant DOC as DocumentService.Api
+    participant DOCDB as Document DB
+
+    User->>UI: Opens application page
+    UI->>CO: GET application (user info)
+    activate CO
+    CO->>CODB: Load application + document refs
+    CODB-->>CO: Application + references
+    Note over CO: Need current status per document
+    CO->>DOC: GET documents by ids
+    activate DOC
+    DOC->>DOCDB: Query documents by ids
+    DOCDB-->>DOC: Metadata + statuses
+    DOC-->>CO: 200 OK (documents)
+    deactivate DOC
+    Note over CO: Merge refs with live statuses
+    CO-->>UI: 200 OK (application + documents)
+    deactivate CO
+    UI-->>User: Renders documents and statuses
+  </div>
+
+  <h2>The Azurite connection string (Part 2)</h2>
+  <p>Memorize this, it's the same everywhere:</p>
+  <pre><code>UseDevelopmentStorage=true</code></pre>
+  <p>This is a shorthand the Azure SDK resolves to a full local connection string with a well-known account key. That key is <strong>not a secret</strong>, it's hardcoded by Microsoft for all Azurite users. Don't be surprised when you see it in tutorials.</p>
+
+  <h2>Inside Docker, host names change</h2>
+  <table>
+    <thead>
+      <tr><th>What</th><th>Outside Docker</th><th>Inside Docker</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>MSSQL</td><td><code>localhost,1433</code></td><td><code>mssql,1433</code></td></tr>
+      <tr><td>Azurite blob</td><td><code>http://localhost:10000</code></td><td><code>http://azurite:10000</code></td></tr>
+      <tr><td>CustomerService.Api</td><td><code>http://localhost:5001</code></td><td><code>http://customer-api:8080</code></td></tr>
+      <tr><td>DocumentService.Api</td><td><code>http://localhost:5002</code></td><td><code>http://document-api:8080</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>EF Core migration commands</h2>
+  <pre><code># Create a migration
 dotnet ef migrations add &lt;Name&gt; \
-  --project src/Documents/Documents.Infrastructure \
-  --startup-project src/Documents/Documents.Api
+  --project CustomerService.Store \
+  --startup-project CustomerService.Api
 
 # Apply migrations
 dotnet ef database update \
-  --project src/Documents/Documents.Infrastructure \
-  --startup-project src/Documents/Documents.Api
+  --project CustomerService.Store \
+  --startup-project CustomerService.Api
 
 # Generate a SQL script (for review)
 dotnet ef migrations script \
-  --project src/Documents/Documents.Infrastructure \
-  --startup-project src/Documents/Documents.Api</code></pre>
+  --project CustomerService.Store \
+  --startup-project CustomerService.Api</code></pre>
 
-        <h2>Useful one-liners</h2>
-        <pre><code># Bring up the whole stack
+  <h2>Useful one-liners</h2>
+  <pre><code># Bring up the whole stack
 docker compose up
 
 # Bring down the stack, keep data
@@ -79,32 +161,11 @@ docker compose down
 docker compose down -v
 
 # Tail logs from a single service
-docker compose logs -f documents-api
+docker compose logs -f customer-api
 
 # Restart one service
-docker compose restart documents-api
+docker compose restart customer-api
 
 # Open a shell inside a container
-docker compose exec documents-api /bin/bash</code></pre>
-      </div>
-
-      <div class="footer-nav">
-        <button class="footer-btn" id="prevBtn" disabled>
-          <span class="footer-btn-label">Previous</span>
-          <span class="footer-btn-text" id="prevText">—</span>
-        </button>
-        <button class="footer-btn next" id="nextBtn">
-          <span class="footer-btn-label">Next</span>
-          <span class="footer-btn-text" id="nextText">Orientation</span>
-        </button>
-      </div>
-
-    </div>
-  </main>
-
+docker compose exec customer-api /bin/bash</code></pre>
 </div>
-
-<script type="module" src="./onboarding-sidebar.js"></script>
-
-</body>
-</html>

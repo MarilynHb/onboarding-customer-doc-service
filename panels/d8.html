@@ -1,0 +1,49 @@
+<div class="panel" data-panel="d8">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 8</div>
+    <h1>Full stack + stretch goals</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~5-6 days</span>
+      <span class="meta-pill">Your pick</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together after Part 1.</div>
+  </div>
+
+  <p>The finish line. Everything runs together in one Docker Compose stack: both services, both databases, Azurite, and the UI. Then you pick stretch goals based on what interests you.</p>
+
+  <h2>What you'll build (sketch)</h2>
+  <ul>
+    <li>One polished <code>docker compose up</code> that brings up the whole system: customer service, document service, MSSQL (two databases), Azurite, and the Blazor UI.</li>
+    <li>The UI extended so a customer can upload a document during onboarding and an admin can review it, exercising the full cross-service flow end to end.</li>
+    <li>A top-level README for the whole system.</li>
+  </ul>
+
+  <h2>Stretch goals (pick what interests you)</h2>
+  <ul>
+    <li><strong>Tests:</strong> real coverage on both services, plus integration tests with <code>WebApplicationFactory</code>.</li>
+    <li><strong>SAS URLs:</strong> let the browser download blobs directly via short-lived signed URLs instead of streaming through the Api.</li>
+    <li><strong>Audit log:</strong> record every status transition; let admins view the history.</li>
+    <li><strong>Structured logging:</strong> add Serilog across both services.</li>
+    <li><strong>Resilience:</strong> add Polly retry policies on the cross-service HTTP calls.</li>
+    <li><strong>Document expiry:</strong> identity documents expire after 12 months, with an automatic transition.</li>
+  </ul>
+
+  <div class="callout callout-accent">
+    <span class="callout-icon">★</span>
+    <div>Better one stretch goal done well than four done shallowly.</div>
+  </div>
+
+  <h2>To flesh out later</h2>
+  <ul>
+    <li>The exact final compose layout and startup ordering</li>
+    <li>Which stretch goals we prioritize, based on where you want to grow</li>
+    <li>A wrap-up conversation: what you'd do differently if you started over</li>
+  </ul>
+
+  <button class="done-toggle" data-milestone="d8"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

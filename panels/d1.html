@@ -1,0 +1,40 @@
+<div class="panel" data-panel="d1">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 1</div>
+    <h1>Orientation and scaffolding</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~2 days</span>
+      <span class="meta-pill">Same spine, bigger</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together once you've finished Part 1 and we both know how the pace is going. The shape is the same as the customer service, so you already know most of what's coming.</div>
+  </div>
+
+  <p>You now know the spine: Domain, Application, Service, Store, Api, Common. Part 2 builds a second service, <code>DocumentService</code>, using exactly that structure. This first step is the same as Part 1's orientation, but faster because the pattern is familiar.</p>
+
+  <h2>What you'll build</h2>
+  <ul>
+    <li>A new <code>DocumentService</code> solution with the same six-project layout.</li>
+    <li>A short note in <code>notes/</code> on what's different this time: there's a file to store somewhere (not just rows in a table), and eventually another service will call this one.</li>
+  </ul>
+
+  <h2>What's new compared to Part 1</h2>
+  <ul>
+    <li>Documents have an actual file, not just metadata. That file needs somewhere to live (blob storage, coming in Step 4).</li>
+    <li>The state machine is richer: Draft, Submitted, UnderReview, Approved, Rejected, with resubmission.</li>
+    <li>This service will eventually be called <em>by</em> the customer service, not by a user directly.</li>
+  </ul>
+
+  <h2>To flesh out later</h2>
+  <ul>
+    <li>Exact project names and references (mirror Part 1)</li>
+    <li>The orientation reading list (mostly the same as Part 1's)</li>
+    <li>A short prediction exercise on where the "file storage" concern will live</li>
+  </ul>
+
+  <button class="done-toggle" data-milestone="d1"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

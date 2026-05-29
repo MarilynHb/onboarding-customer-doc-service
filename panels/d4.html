@@ -1,0 +1,53 @@
+<div class="panel" data-panel="d4">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 4</div>
+    <h1>Service layer + blob storage</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~4-5 days</span>
+      <span class="meta-pill">Azurite enters</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together after Part 1.</div>
+  </div>
+
+  <p>The document service's biggest new concept: storing actual files in Azure Blob, emulated locally with Azurite. You build the <code>DocumentService</code> class against both interfaces, and implement <code>IDocumentStorage</code> against Azurite.</p>
+
+  <h2>What you'll build (sketch)</h2>
+  <ul>
+    <li><code>DocumentService</code> with use cases: upload, list mine, get by id, resubmit, approve, reject.</li>
+    <li>Azurite running in Docker (one more container).</li>
+    <li>An <code>AzureBlobDocumentStorage</code> implementing <code>IDocumentStorage</code>, using the <code>Azure.Storage.Blobs</code> SDK and the magic <code>UseDevelopmentStorage=true</code> connection string.</li>
+    <li>The upload use case: store the file via <code>IDocumentStorage</code>, save the metadata + storage reference via <code>IDocumentStore</code>.</li>
+  </ul>
+
+  <h2>What's new compared to Part 1</h2>
+  <ul>
+    <li>Two backing stores instead of one: the metadata database and the blob storage.</li>
+    <li>Azurite as a local emulator for Azure Blob (no Azure account or cost).</li>
+    <li>The Microsoft Storage Explorer for poking at stored blobs by hand.</li>
+  </ul>
+
+  <h2>Key resources (preview)</h2>
+  <div class="resource-grid">
+    <a class="resource" href="https://learn.microsoft.com/en-us/azure/storage/common/storage-install-azurite" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">Install and run Azurite</div>
+        <div class="resource-note">The local Azure Blob emulator.</div>
+      </div>
+    </a>
+    <a class="resource" href="https://learn.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-dotnet" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">Blob storage with .NET</div>
+        <div class="resource-note">The SDK basics for upload/download.</div>
+      </div>
+    </a>
+  </div>
+
+  <button class="done-toggle" data-milestone="d4"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

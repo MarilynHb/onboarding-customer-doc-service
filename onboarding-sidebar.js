@@ -1,17 +1,36 @@
-const TABS = ['overview', 'm1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm8', 'm7', 'reference'];
+const TABS = [
+  'overview',
+  'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8',
+  'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8',
+  'reference'
+];
+
 const TAB_LABELS = {
   overview: 'Overview',
-  m1: 'Orientation',
-  m2: 'Domain layer',
-  m3: 'Application layer',
-  m4: 'Infrastructure',
-  m5: 'Web layer',
-  m6: 'Onboarding service',
-  m8: 'Blazor UI + stretch',
-  m7: 'Docker Compose',
+  c1: 'Orientation',
+  c2: 'Domain',
+  c3: 'Application contracts',
+  c4: 'Service layer',
+  c5: 'Store + database',
+  c6: 'Api layer',
+  c7: 'Docker',
+  c8: 'Blazor UI',
+  d1: 'Orientation',
+  d2: 'Domain',
+  d3: 'Application contracts',
+  d4: 'Service + blob storage',
+  d5: 'Store + database',
+  d6: 'Api + file handling',
+  d7: 'Connecting the services',
+  d8: 'Full stack + stretch',
   reference: 'Reference card'
 };
-const MILESTONES = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8'];
+
+const MILESTONES = [
+  'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8',
+  'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'
+];
+
 const STORAGE_KEY = 'onboarding-project-progress';
 const LAST_TAB_KEY = 'onboarding-last-tab';
 const PANEL_FOLDER = './panels';
@@ -30,13 +49,13 @@ function saveProgress(progress) {
 function buildSidebarHtml() {
   return `
     <div class="sidebar-brand">Onboarding project</div>
-    <div class="sidebar-title">Your customer document service</div>
+    <div class="sidebar-title">Building services, the Moneygate way</div>
 
     <div class="sidebar-progress">
       <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
       </div>
-      <div class="progress-text" id="progressText">0 of 8 milestones done</div>
+      <div class="progress-text" id="progressText">0 of 16 steps done</div>
     </div>
 
     <div class="nav-group">
@@ -47,23 +66,27 @@ function buildSidebarHtml() {
     </div>
 
     <div class="nav-group">
-      <div class="nav-group-label">Documents Service</div>
-      <button class="nav-item" data-tab="m1"><span class="nav-num">01</span><span>Orientation</span></button>
-      <button class="nav-item" data-tab="m2"><span class="nav-num">02</span><span>Domain layer</span></button>
-      <button class="nav-item" data-tab="m3"><span class="nav-num">03</span><span>Application layer</span></button>
-      <button class="nav-item" data-tab="m4"><span class="nav-num">04</span><span>Infrastructure</span></button>
-      <button class="nav-item" data-tab="m5"><span class="nav-num">05</span><span>Web layer</span></button>
+      <div class="nav-group-label">Part 1 · Customer service</div>
+      <button class="nav-item" data-tab="c1"><span class="nav-num">1</span><span>Orientation</span></button>
+      <button class="nav-item" data-tab="c2"><span class="nav-num">2</span><span>Domain</span></button>
+      <button class="nav-item" data-tab="c3"><span class="nav-num">3</span><span>Application contracts</span></button>
+      <button class="nav-item" data-tab="c4"><span class="nav-num">4</span><span>Service layer</span></button>
+      <button class="nav-item" data-tab="c5"><span class="nav-num">5</span><span>Store + database</span></button>
+      <button class="nav-item" data-tab="c6"><span class="nav-num">6</span><span>Api layer</span></button>
+      <button class="nav-item" data-tab="c7"><span class="nav-num">7</span><span>Docker</span></button>
+      <button class="nav-item" data-tab="c8"><span class="nav-num">8</span><span>Blazor UI</span></button>
     </div>
 
     <div class="nav-group">
-      <div class="nav-group-label">Customer Onboarding</div>
-      <button class="nav-item" data-tab="m6"><span class="nav-num">06</span><span>Onboarding service</span></button>
-      <button class="nav-item" data-tab="m8"><span class="nav-num">08</span><span>Blazor UI + stretch</span></button>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-group-label">Bringing it together</div>
-      <button class="nav-item" data-tab="m7"><span class="nav-num">07</span><span>Docker Compose</span></button>
+      <div class="nav-group-label">Part 2 · Document service</div>
+      <button class="nav-item" data-tab="d1"><span class="nav-num">1</span><span>Orientation</span></button>
+      <button class="nav-item" data-tab="d2"><span class="nav-num">2</span><span>Domain</span></button>
+      <button class="nav-item" data-tab="d3"><span class="nav-num">3</span><span>Application contracts</span></button>
+      <button class="nav-item" data-tab="d4"><span class="nav-num">4</span><span>Service + blob</span></button>
+      <button class="nav-item" data-tab="d5"><span class="nav-num">5</span><span>Store + database</span></button>
+      <button class="nav-item" data-tab="d6"><span class="nav-num">6</span><span>Api + files</span></button>
+      <button class="nav-item" data-tab="d7"><span class="nav-num">7</span><span>Connecting services</span></button>
+      <button class="nav-item" data-tab="d8"><span class="nav-num">8</span><span>Full stack + stretch</span></button>
     </div>
 
     <div class="nav-group">
@@ -142,7 +165,7 @@ function renderProgressUI() {
 
   const progressText = document.getElementById('progressText');
   const progressFill = document.getElementById('progressFill');
-  if (progressText) progressText.textContent = `${done} of ${total} milestones done`;
+  if (progressText) progressText.textContent = `${done} of ${total} steps done`;
   if (progressFill) progressFill.style.width = `${(done / total) * 100}%`;
 
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -157,7 +180,7 @@ function renderProgressUI() {
     const isDone = !!progress[name];
     btn.classList.toggle('done', isDone);
     const label = btn.querySelector('.toggle-label');
-    if (label) label.textContent = isDone ? 'Completed' : 'Mark milestone as complete';
+    if (label) label.textContent = isDone ? 'Completed' : 'Mark step as complete';
   });
 }
 
@@ -193,6 +216,14 @@ async function renderPanel(name) {
   }
 
   attachPanelEvents();
+  if (window.mermaid) {
+    try {
+      mermaid.init(undefined, panelsContainer.querySelectorAll('.mermaid'));
+    } catch (error) {
+      console.error('Mermaid rendering failed:', error);
+    }
+  }
+  attachDiagramZoomButtons();
   renderProgressUI();
 }
 
@@ -208,6 +239,61 @@ function attachPanelEvents() {
   });
 
   content.dataset.eventsAttached = '1';
+}
+
+function attachDiagramZoomButtons() {
+  document.querySelectorAll('.mermaid').forEach((block) => {
+    if (block.querySelector('.diagram-zoom-btn')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'diagram-zoom-btn';
+    button.textContent = 'Zoom';
+    button.addEventListener('click', () => openDiagramModal(block));
+    block.appendChild(button);
+  });
+}
+
+function openDiagramModal(sourceElement) {
+  const modal = document.getElementById('diagramModal');
+  if (!modal) return;
+
+  const body = modal.querySelector('.diagram-modal-body');
+  body.innerHTML = '';
+
+  const clone = sourceElement.cloneNode(true);
+  clone.style.width = '100%';
+  clone.style.maxWidth = '100%';
+  clone.style.zoom = '1';
+  clone.querySelectorAll('.diagram-zoom-btn').forEach(btn => btn.remove());
+  body.appendChild(clone);
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeDiagramModal() {
+  const modal = document.getElementById('diagramModal');
+  if (!modal) return;
+
+  const body = modal.querySelector('.diagram-modal-body');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  body.innerHTML = '';
+}
+
+function attachModalEvents() {
+  const modal = document.getElementById('diagramModal');
+  if (!modal) return;
+
+  modal.querySelectorAll('[data-modal-close]').forEach((button) => {
+    button.addEventListener('click', closeDiagramModal);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && modal.classList.contains('open')) {
+      closeDiagramModal();
+    }
+  });
 }
 
 function attachEventHandlers() {
@@ -244,6 +330,7 @@ async function initializeSidebar() {
   if (!sidebar) return;
   sidebar.innerHTML = buildSidebarHtml();
   attachEventHandlers();
+  attachModalEvents();
 
   try {
     const last = localStorage.getItem(LAST_TAB_KEY);

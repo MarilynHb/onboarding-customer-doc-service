@@ -1,0 +1,33 @@
+<div class="panel" data-panel="d3">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 3</div>
+    <h1>Application contracts</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~3 days</span>
+      <span class="meta-pill">Two interfaces now</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together after Part 1.</div>
+  </div>
+
+  <p>Same as Part 1's contracts step, but with one important addition: alongside <code>IDocumentStore</code> (the metadata database), you also define <code>IDocumentStorage</code> (the file storage). Two separate concerns, two separate interfaces, both defined here, both implemented later in the Store layer.</p>
+
+  <h2>What you'll build (sketch)</h2>
+  <ul>
+    <li><code>IDocumentStore</code> for the metadata (same shape as <code>ICustomerStore</code>).</li>
+    <li><code>IDocumentStorage</code> for the file: <code>UploadAsync(stream)</code>, <code>DownloadAsync(reference)</code>, <code>DeleteAsync(reference)</code>.</li>
+    <li>DTOs and validators, as before.</li>
+  </ul>
+
+  <h2>What's new compared to Part 1</h2>
+  <ul>
+    <li>The split between "where the metadata lives" and "where the file lives" is the key new idea. The service will use both.</li>
+    <li>Streams enter the picture: the storage interface deals in <code>Stream</code>, not <code>byte[]</code>. (We'll cover why in Step 6.)</li>
+  </ul>
+
+  <button class="done-toggle" data-milestone="d3"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

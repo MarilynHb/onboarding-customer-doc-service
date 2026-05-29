@@ -1,0 +1,39 @@
+<div class="panel" data-panel="d6">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 6</div>
+    <h1>Api layer + file handling</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~4 days</span>
+      <span class="meta-pill">Upload + download</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together after Part 1.</div>
+  </div>
+
+  <p>The document Api, with the genuinely new part: handling file uploads and downloads over HTTP without loading whole files into memory. Same controller-and-DI pattern you learned in Part 1, plus streaming.</p>
+
+  <h2>What you'll build (sketch)</h2>
+  <ul>
+    <li>A <code>DocumentsController</code> with upload (<code>POST</code> with <code>IFormFile</code>), list, get metadata, download (<code>FileStreamResult</code>), submit, approve, reject.</li>
+    <li>The same fake auth middleware as Part 1, distinguishing customer vs admin and the document owner.</li>
+    <li>A <code>.http</code> file, plus a manual test: upload a large file and confirm memory doesn't balloon.</li>
+  </ul>
+
+  <h2>What's new compared to Part 1</h2>
+  <ul>
+    <li>Multipart file uploads with <code>IFormFile</code>.</li>
+    <li>Streaming downloads, no buffering the whole file in memory.</li>
+    <li>The Api now containerized alongside Azurite, the database, and the customer service.</li>
+  </ul>
+
+  <div class="callout callout-accent">
+    <span class="callout-icon">◆</span>
+    <div><strong>C# depth moment (to flesh out):</strong> streams, and why we never do <code>ReadAllBytes</code> on an uploaded file.</div>
+  </div>
+
+  <button class="done-toggle" data-milestone="d6"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

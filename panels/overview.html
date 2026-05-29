@@ -1,123 +1,115 @@
 <div class="panel active" data-panel="overview">
-        <div class="header">
-          <div class="breadcrumb">Welcome</div>
-          <h1>Your customer document service</h1>
-          <p class="header-subtitle">An ~8-week guided build · Clean Architecture · microservices · Docker</p>
-        </div>
+  <div class="header">
+    <div class="breadcrumb">Welcome</div>
+    <h1>Building services, the Moneygate way</h1>
+    <p class="header-subtitle">A two-part guided build · layered architecture · EF Core · Docker · Blazor</p>
+  </div>
 
-        <p>Over the next ~8 weeks, you're going to build something real: a small but production-shaped microservices system inspired by what we actually do at Moneygate. By the end you'll have a working API for managing customer documents, a second service that consumes it, a Blazor UI on top, and everything orchestrated with Docker Compose.</p>
+  <p>Over the next few months, you're going to build two real backend services, inspired by what we actually do at Moneygate. You'll start with a small customer service to learn the shape of how we build things, then build a bigger document service that reuses the same shape and adds the harder pieces: file storage and service-to-service communication.</p>
 
-        <p>More importantly, you'll have built it with proper Clean Architecture so the patterns translate directly to our real codebase.</p>
+  <p>By the end you'll have a working system: customers can register and onboard, upload identity documents, and have them reviewed, all running locally with Docker, with a small Blazor UI on top.</p>
 
-        <div class="callout callout-accent">
-          <span class="callout-icon">★</span>
-          <div>This isn't a tutorial. It's a guided build. The point is not to finish, it's to <strong>understand every choice you make and be able to defend it</strong>.</div>
-        </div>
+  <div class="callout callout-accent">
+    <span class="callout-icon">★</span>
+    <div>This isn't a tutorial. It's a guided build. The point is not to finish, it's to <strong>understand every choice you make and be able to defend it</strong>.</div>
+  </div>
 
-        <h2>Why this project</h2>
-        <p>You've worked with .NET and APIs before. So a lot of what you'll see here might feel familiar at first. That's a trap. The work this time isn't <em>how</em> to write a controller, it's <em>why</em> we write it the way we do.</p>
+  <h2>Why two parts</h2>
+  <p>You've worked with .NET and APIs before, so a lot of this might feel familiar at first. That's a trap. The work this time isn't <em>how</em> to write a controller, it's <em>why</em> we structure things the way we do.</p>
 
-        <p>Three things make this project genuinely worth your time:</p>
-        <ol>
-          <li><strong>It mirrors our real architecture.</strong> Clean Architecture, microservices that own their data, service-to-service communication over HTTP, Azure Blob for files. These are the patterns you'll see every day at Moneygate.</li>
-          <li><strong>It teaches by enforcing the architecture.</strong> You can't skip the Domain layer or shortcut the Application layer because the next milestone won't work without them. The structure forces depth.</li>
-          <li><strong>The features are EMI-flavored.</strong> Documents, customer onboarding, status transitions, audit trails. The domain you're modeling is the kind of thing we actually deal with.</li>
-        </ol>
+  <p>We build the customer service first on purpose. It's plain CRUD: create a customer, update them, list them, move them through onboarding states. No file uploads, no second service to talk to. That lets you learn the <strong>skeleton</strong> (the layers, the database, validation, Docker) on an easy problem. Then the document service is the same skeleton, but bigger, where you add blob storage, file streaming, and the cross-service call. You're never fighting the architecture and the hard parts at the same time.</p>
 
-        <h2>What you're building</h2>
-        <p>A system with three runnable applications that work together.</p>
+  <h2>The layered structure we use</h2>
+  <p>Both services use the same set of layers. Each layer is a separate project with a clear job. The golden rule: dependencies point inward, toward the Domain. The Domain depends on nothing.</p>
 
-        <h4>Documents.Api</h4>
-        <p>The document service. Owns documents (both the files and the metadata about them) and exposes a REST API. Files are stored in Azure Blob (via Azurite locally), metadata in its own MSSQL database. This is where you apply Clean Architecture in full depth. No other service touches the documents database directly.</p>
+  <ul>
+    <li><strong>Domain</strong> — entities, enums, business rules. The heart of the service. No dependencies on anything else.</li>
+    <li><strong>Application</strong> — the contracts. Interfaces like <code>ICustomerStore</code>, the DTOs, and the validation rules. It says <em>what</em> the service needs, not <em>how</em> it's done.</li>
+    <li><strong>Service</strong> — the use cases. Classes like <code>CustomerService</code> that orchestrate the business logic. They depend on the Application's interfaces, never on a concrete database.</li>
+    <li><strong>Store</strong> — the data layer. EF Core, the <code>DbContext</code>, the concrete implementation of the store interfaces. This is the only layer that knows about the database.</li>
+    <li><strong>Api</strong> — controllers and <code>Program.cs</code>. The composition root that wires everything together through dependency injection.</li>
+    <li><strong>Common</strong> — small shared helpers used across layers, like a <code>ServiceResult</code> type. Keep it minimal.</li>
+  </ul>
 
-        <h4>CustomerOnboarding.Api</h4>
-        <p>Represents a banking app's onboarding flow. Owns customer records and onboarding applications. When a customer needs to upload an identity document, this service doesn't store the file itself. It calls Documents.Api to do that, and keeps only a reference. Its own MSSQL database tracks customers and application status.</p>
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>Where do "services" go?</strong> A class like <code>CustomerService</code> lives in the Service layer. It depends on an interface (e.g. <code>ICustomerStore</code>) that's <em>defined</em> in Application and <em>implemented</em> in Store. That one idea, define the contract in one place, implement it in another, wire them in the Api, is the most important thing you'll learn. It's what makes the whole service testable.</div>
+  </div>
 
-        <h4>CustomerOnboarding.Ui</h4>
-        <p>A small Blazor Server frontend. Lets a customer register, start an onboarding application, upload documents, and check status. Admin pages for reviewing pending applications.</p>
+  <p>We are deliberately keeping this simple. No MediatR, no message queues, no CQRS frameworks. Just plain classes wired through dependency injection. Once you understand the pattern by hand, adding those tools later is easy. Learning them at the same time as everything else is not.</p>
 
-        <p>Everything runs locally in Docker Compose: both APIs, the Blazor UI, Azurite for blob storage, and the MSSQL databases. One command brings the whole stack up.</p>
+  <h2>What you're learning</h2>
+  <p>Across both parts, the technical surface you'll cover:</p>
+  <ul>
+    <li><strong>C# in depth:</strong> records, generics, LINQ, async/await, pattern matching, enums, value types</li>
+    <li><strong>.NET ecosystem:</strong> the difference between C# the language and .NET the platform, the SDK, the runtime</li>
+    <li><strong>Layered architecture:</strong> Domain, Application, Service, Store, Api and why each exists</li>
+    <li><strong>EF Core:</strong> DbContext, migrations, enum mapping, async queries, change tracking</li>
+    <li><strong>Validation:</strong> FluentValidation, keeping rules out of controllers</li>
+    <li><strong>REST API design:</strong> verbs, status codes, the request pipeline, fake auth via headers</li>
+    <li><strong>Docker and Docker Compose:</strong> containerizing a .NET app plus MSSQL, running the whole thing locally</li>
+    <li><strong>Blazor Server:</strong> a small UI that calls your API</li>
+    <li><strong>Azure Blob Storage (Part 2):</strong> via Azurite, the local emulator</li>
+    <li><strong>Service-to-service communication (Part 2):</strong> IHttpClientFactory, typed clients, why services own their own data</li>
+    <li><strong>Testing:</strong> unit tests with xUnit, mocking, integration tests</li>
+  </ul>
 
-        <h2>What you're learning</h2>
-        <p>The technical surface you'll cover over these weeks:</p>
-        <ul>
-          <li><strong>C# in depth:</strong> records, generics, LINQ, async/await, pattern matching, delegates, value types</li>
-          <li><strong>.NET ecosystem:</strong> the difference between C# the language and .NET the platform, the SDK, the runtime</li>
-          <li><strong>Clean Architecture:</strong> Domain, Application, Infrastructure, Presentation layers and the dependency rule</li>
-          <li><strong>REST API design:</strong> verbs, status codes, idempotency, the request pipeline</li>
-          <li><strong>ASP.NET Core:</strong> controllers, middleware, dependency injection, configuration</li>
-          <li><strong>EF Core:</strong> DbContext, migrations, async queries, change tracking</li>
-          <li><strong>Azure Blob Storage:</strong> via Azurite, the Microsoft-provided local emulator</li>
-          <li><strong>Service-to-service communication:</strong> IHttpClientFactory, typed clients, why HttpClient lifetime matters</li>
-          <li><strong>Docker and Docker Compose:</strong> containerizing .NET apps, orchestrating a multi-service stack</li>
-          <li><strong>Blazor Server:</strong> components, rendering, calling APIs from C# in the browser</li>
-          <li><strong>Testing:</strong> unit tests with xUnit, mocking with Moq, integration tests with WebApplicationFactory</li>
-        </ul>
+  <h2>How we'll work together</h2>
 
-        <p>That's a lot. You won't master all of it. You'll get a solid foundation in each, and the project gives you the context to deepen any of them later.</p>
+  <h4>Daily async update</h4>
+  <p>Each working day, post a short message in Teams at end of day. Three lines is enough: what you did, what you're stuck on, what's next. This keeps me in the loop without needing a meeting.</p>
 
-        <h2>How we'll work together</h2>
-        <p>I'm available throughout. Here's how I'd like us to do this:</p>
+  <h4>Real conversation at each step</h4>
+  <p>When you finish a step (or near the end of one), we'll have a proper 30-45 minute call. We'll walk through your code, you'll explain your choices, I'll push back on the ones I disagree with, and we'll set up the next step together.</p>
 
-        <h4>Daily async update</h4>
-        <p>Each working day, post a short message in Teams at end of day. Three lines is enough: what you did, what you're stuck on, what's next. This keeps me in the loop without needing a meeting.</p>
+  <h4>Stuck threshold</h4>
+  <p>If you've been stuck on something for more than an hour and you've tried at least two approaches, ping me. Stuck does not mean "I don't know the answer." Stuck means "I've tried, and I'm not sure where I'm wrong." That's exactly when to ask, and it's not a sign of weakness. The opposite. Pretending to be unstuck wastes everyone's time.</p>
 
-        <h4>Real conversation at each milestone</h4>
-        <p>When you finish a milestone (or near the end of one), we'll have a proper 30-45 minute call. We'll walk through your code, you'll explain your choices, I'll push back on the ones I disagree with, and we'll set up the next milestone together. That's roughly 8-9 conversations across the whole project.</p>
+  <h4>Pace is yours</h4>
+  <p>The steps are sized roughly in days, but I'm not measuring you against the calendar. If a step takes longer because you're going deep, that's a good thing. The goal is comprehension, not speed. This whole thing will take more than a couple of months, and that's expected.</p>
 
-        <h4>Stuck threshold</h4>
-        <p>If you've been stuck on something for more than an hour and you've tried at least two approaches, ping me. Stuck does not mean "I don't know the answer." Stuck means "I've tried, and I'm not sure where I'm wrong." That's exactly when to ask, and it's not a sign of weakness. The opposite. Pretending to be unstuck wastes everyone's time.</p>
+  <h2>The journey at a glance</h2>
+  <p>Each step is a "fill in the next blank." One step produces something runnable or testable, and unlocks the next.</p>
 
-        <h4>Pace is yours</h4>
-        <p>The milestones are sized roughly in days, but I'm not measuring you against the calendar. If a milestone takes longer because you're going deep, that's a good thing. If it takes shorter because you flew through it, we'll talk about whether the depth was actually there. The goal is comprehension, not speed.</p>
+  <h4>Part 1 — Customer service (the foundation)</h4>
+  <p>Build the whole skeleton on easy mode: plain customer CRUD with onboarding states. By the end it runs in Docker with a small Blazor UI.</p>
+  <ul>
+    <li><strong>Step 1 — Orientation:</strong> read, predict, scaffold the empty six-project solution</li>
+    <li><strong>Step 2 — Domain:</strong> the <code>Customer</code> entity and <code>OnboardingStatus</code> enum, with tests</li>
+    <li><strong>Step 3 — Application contracts:</strong> interfaces, DTOs, validation rules</li>
+    <li><strong>Step 4 — Service layer:</strong> <code>CustomerService</code> against an in-memory fake store</li>
+    <li><strong>Step 5 — Store + database:</strong> EF Core, MSSQL, enum mapping, migrations</li>
+    <li><strong>Step 6 — Api layer:</strong> controllers, fake auth, first true end-to-end</li>
+    <li><strong>Step 7 — Docker:</strong> containerize the Api and MSSQL, run with compose</li>
+    <li><strong>Step 8 — Blazor UI:</strong> a small frontend so you see it work in a browser</li>
+  </ul>
 
-        <h2>The journey at a glance</h2>
-        <p>The project is organized in three parts. Each part builds on the last.</p>
+  <h4>Part 2 — Document service (the real thing)</h4>
+  <p>Same skeleton, but bigger. Adds blob storage, file streaming, and the cross-service call where the customer service talks to the document service.</p>
+  <ul>
+    <li><strong>Steps 1-6:</strong> repeat the spine (Domain, Application, Service, Store, Api) with the document domain, plus Azure Blob via Azurite and real file upload/download</li>
+    <li><strong>Step 7 — Connecting the services:</strong> the customer service calls the document service over HTTP</li>
+    <li><strong>Step 8 — Full stack + stretch:</strong> everything in Docker, UI wired through, plus optional deeper features</li>
+  </ul>
 
-        <h4>Part 1 — Documents Service</h4>
-        <p>You build a complete Clean Architecture service from scratch. Domain, Application, Infrastructure, Web layer, with file storage via Azurite. By the end you have a working REST API for documents.</p>
-        <ul>
-          <li><strong>Milestone 1</strong> — Orientation and foundations (~3 days)</li>
-          <li><strong>Milestone 2</strong> — The Domain layer with real depth (~5 days)</li>
-          <li><strong>Milestone 3</strong> — The Application layer and use cases (~5 days)</li>
-          <li><strong>Milestone 4</strong> — Infrastructure: EF Core, MSSQL, Azurite (~6 days)</li>
-          <li><strong>Milestone 5</strong> — Web layer, fake auth, first end-to-end slice (~5 days)</li>
-        </ul>
+  <p>I'd suggest reading the Part 1 steps once before starting. Get the shape, then come back to each as you reach it. The Part 2 steps are lighter for now; we'll flesh them out together once Part 1 is done and we know how you're getting on.</p>
 
-        <h4>Part 2 — Customer Onboarding</h4>
-        <p>You build a second service that consumes the first. This is where microservices stops being a buzzword. Then you add the Blazor UI on top.</p>
-        <ul>
-          <li><strong>Milestone 6</strong> — The Onboarding service with HTTP integration (~6 days)</li>
-          <li><strong>Milestone 8</strong> — Blazor UI and stretch goals (~6 days)</li>
-        </ul>
+  <h2>Things to keep in mind throughout</h2>
 
-        <h4>Part 3 — Bringing it together</h4>
-        <p>You polish the entire stack and orchestrate it with Docker Compose.</p>
-        <ul>
-          <li><strong>Milestone 7</strong> — Full Docker Compose orchestration (~3 days)</li>
-        </ul>
+  <h4>You will make mistakes</h4>
+  <p>That is the entire point. Your first attempt won't be perfect. You'll put logic in the wrong layer. You'll refactor on day three. All of this is the work, not a failure. The intern who breezes through never learns as much as the one who hits walls and works through them.</p>
 
-        <p>I'd suggest reading every section once before starting. Get the shape of the journey, then come back to each as you reach it.</p>
+  <h4>Read more than you write, early on</h4>
+  <p>When you hit something new, look at how our existing repositories do it. Most of your questions are already answered in well-known places. The skill isn't inventing solutions, it's recognizing patterns.</p>
 
-        <h2>Things to keep in mind throughout</h2>
+  <h4>Defend your choices</h4>
+  <p>By the end of this project, every line of code should be something you chose deliberately, even if "deliberately" means "I picked the simplest option that worked." Pretending you understand when you don't will catch up with you fast.</p>
 
-        <h4>You will make mistakes</h4>
-        <p>That is the entire point. Your first attempt at Clean Architecture will not be perfect. You'll put logic in the wrong place. You'll refactor on day three. You'll discover on day twelve that you should have done something differently on day eight. All of this is the work, not a failure. The intern who breezes through never learns as much as the intern who hits walls and works through them.</p>
+  <h4>Push back when you disagree</h4>
+  <p>If something here feels wrong, or a step is unclear, or you think there's a better approach, say so. You're not building this to follow my plan. You're building it to become an engineer who can make good plans of your own.</p>
 
-        <h4>Read more than you write, early on</h4>
-        <p>When you hit something new, look at how the Jason Taylor template does it. Look at how Microsoft's official samples do it. Most of your questions are already answered in well-known places. The skill isn't inventing solutions, it's recognizing patterns. You can also check our current repository to get inspired.</p>
+  <h4>Have fun</h4>
+  <p>This is close to how we actually work, customers, onboarding, documents, services talking to each other. Building it from scratch will be genuinely fun. Enjoy it.</p>
 
-        <h4>Defend your choices</h4>
-        <p>By the end of this project, every line of code should be something you chose deliberately, even if "deliberately" means "I picked the simplest option that worked." Pretending you understand when you don't will catch up with you fast.</p>
-
-        <h4>Push back when you disagree</h4>
-        <p>If something in this document feels wrong, or a milestone is unclear, or you think there's a better approach, say so. You're not building this project to follow my plan. You're building it to become an engineer who can make good plans of your own.</p>
-
-        <h4>Have fun</h4>
-        <p>This project is interesting as you will get introduced to maanging customer documents, onboarding flows, microservices talking to each other. This is close to how we work now and building things from scractch will be fun. Enjoy!</p>
-
-        <p>Looking forward to seeing it come together.</p>
-      </div>
-
-      <!-- MILESTONE 1 -->
-      
+  <p>Looking forward to seeing it come together.</p>
+</div>

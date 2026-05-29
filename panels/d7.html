@@ -1,0 +1,55 @@
+<div class="panel" data-panel="d7">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 7</div>
+    <h1>Connecting the services</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~4-5 days</span>
+      <span class="meta-pill">The microservices moment</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together after Part 1.</div>
+  </div>
+
+  <p>The payoff of building two services: now they talk. The customer service, when it needs a document uploaded as part of onboarding, calls the document service over HTTP. This is where "microservices" stops being a word and becomes something you've actually built.</p>
+
+  <h2>What you'll build (sketch)</h2>
+  <ul>
+    <li>In the customer service, an <code>IDocumentsApiClient</code> (defined in its Application layer) and a typed-client implementation using <code>IHttpClientFactory</code>.</li>
+    <li>An onboarding flow where the customer service receives a document, calls the document service to store it, and keeps only a reference.</li>
+    <li>The rule made real: the customer service never touches the document database or blob storage directly. It always goes through the document service's Api.</li>
+  </ul>
+
+  <h2>What's new compared to everything before</h2>
+  <ul>
+    <li>Service-to-service HTTP with typed clients (and why not raw <code>new HttpClient()</code>).</li>
+    <li>What happens when the other service is down, and how the caller experiences that.</li>
+    <li>Service contracts: how the two agree on document IDs and statuses.</li>
+  </ul>
+
+  <h2>The flow you're building</h2>
+  <p>This is the upload flow from the Reference card. When you reach this step, that diagram describes exactly what you're wiring up.</p>
+
+  <h2>Key resources (preview)</h2>
+  <div class="resource-grid">
+    <a class="resource" href="https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">IHttpClientFactory and typed clients</div>
+        <div class="resource-note">The right way to call another service.</div>
+      </div>
+    </a>
+    <a class="resource" href="https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">HttpClient guidelines</div>
+        <div class="resource-note">Why HttpClient lifetime matters.</div>
+      </div>
+    </a>
+  </div>
+
+  <button class="done-toggle" data-milestone="d7"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

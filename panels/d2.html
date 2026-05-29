@@ -1,0 +1,39 @@
+<div class="panel" data-panel="d2">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 2</div>
+    <h1>The Domain layer</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~3 days</span>
+      <span class="meta-pill">Richer state machine</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together after Part 1.</div>
+  </div>
+
+  <p>Same idea as the customer domain, but the <code>Document</code> entity is more interesting. It has a real state machine and a clear split between metadata (filename, type, size, status) and the file itself (which lives in blob storage, not in the entity).</p>
+
+  <h2>What you'll build (sketch)</h2>
+  <ul>
+    <li>A <code>DocumentStatus</code> enum: Draft, Submitted, UnderReview, Approved, Rejected.</li>
+    <li>A <code>DocumentType</code> concept: Identity, ProofOfAddress, AccountStatement.</li>
+    <li>A <code>Document</code> entity holding metadata plus a reference to where the file is stored (not the bytes themselves).</li>
+    <li>Business rules: can't approve a Draft, an approved document is immutable, a rejected one can be resubmitted. Tests for each.</li>
+  </ul>
+
+  <h2>What's new compared to Part 1</h2>
+  <ul>
+    <li>The entity references a stored file by an opaque "storage reference", but knows nothing about how blob storage works. That's a Store concern.</li>
+    <li>More transitions, so more rules and more tests.</li>
+  </ul>
+
+  <div class="callout callout-accent">
+    <span class="callout-icon">◆</span>
+    <div><strong>C# depth moment (to flesh out):</strong> value objects with records, for things like <code>FileMetadata</code>. When is a record struct the right call?</div>
+  </div>
+
+  <button class="done-toggle" data-milestone="d2"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

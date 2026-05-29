@@ -1,0 +1,33 @@
+<div class="panel" data-panel="d5">
+  <div class="header">
+    <div class="breadcrumb">Part 2 · Document service · Step 5</div>
+    <h1>Store layer + database</h1>
+    <div class="milestone-meta">
+      <span class="meta-pill accent">Outline</span>
+      <span class="meta-pill">~3 days</span>
+      <span class="meta-pill">Familiar ground</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div><strong>This is an outline.</strong> We'll flesh it out together after Part 1.</div>
+  </div>
+
+  <p>This step is mostly a repeat of Part 1's Store step, you've done EF Core and MSSQL already. The document service gets its own database (separate from the customer one) for document metadata. The blob side is already handled from Step 4.</p>
+
+  <h2>What you'll build (sketch)</h2>
+  <ul>
+    <li><code>DocumentsDbContext</code> and an <code>EfDocumentStore</code> implementing <code>IDocumentStore</code>.</li>
+    <li>A second database in the same MSSQL container (separate database, not a separate server).</li>
+    <li>Migrations for the document metadata schema.</li>
+  </ul>
+
+  <h2>What's new compared to Part 1</h2>
+  <ul>
+    <li>Two databases now exist (CustomerDb and DocumentsDb), reinforcing "each service owns its own data."</li>
+    <li>Very little new EF Core to learn, this is consolidation.</li>
+  </ul>
+
+  <button class="done-toggle" data-milestone="d5"><span class="checkbox"></span><span class="toggle-label">Mark step as complete</span></button>
+</div>

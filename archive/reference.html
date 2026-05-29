@@ -1,0 +1,178 @@
+<div class="panel" data-panel="reference">
+        <div class="header">
+          <div class="breadcrumb">Reference</div>
+          <h1>Reference card</h1>
+          <p class="header-subtitle">Things you might need to look up later.</p>
+        </div>
+
+        <h2>Solution Workflows</h2>
+        <h3>Upload Flow</h3>
+        <div class="mermaid">
+          sequenceDiagram
+              autonumber
+              actor User as Customer
+              participant UI as CustomerOnboarding.Ui<br/>(Blazor Server)
+              participant CO as CustomerOnboarding.Api
+              participant CODB as CustomerOnboarding DB
+              participant DOC as Documents.Api
+              participant DOCDB as Documents DB
+              participant BLOB as Azurite<br/>(Blob Storage)
+  
+              User->>UI: Selects file, clicks upload
+              UI->>CO: POST /applications/{id}/documents<br/>(multipart, X-User-Id header)
+  
+              activate CO
+              CO->>CODB: Load OnboardingApplication
+              CODB-->>CO: Application + state
+  
+              Note over CO: Validate: app exists,<br/>belongs to user, accepts documents
+  
+              CO->>DOC: POST /api/documents<br/>(stream file, X-User-Id, type)
+  
+              activate DOC
+              DOC->>BLOB: UploadAsync(stream)
+              BLOB-->>DOC: blob reference (URI)
+  
+              DOC->>DOCDB: Save Document<br/>(metadata + blob ref)
+              DOCDB-->>DOC: Document Id
+  
+              DOC-->>CO: 201 Created<br/>{ documentId, status }
+              deactivate DOC
+  
+              CO->>CODB: Save RequiredDocument<br/>reference (documentId, type)
+              CODB-->>CO: OK
+  
+              CO-->>UI: 201 Created<br/>{ documentId }
+              deactivate CO
+  
+              UI-->>User: Shows success, refreshes list
+        </div>
+        <h3>View Application Flow</h3>
+        <div class="mermaid">
+          sequenceDiagram
+              autonumber
+              actor User as Customer
+              participant UI as "CustomerOnboarding.Ui
+              (Blazor Server)"
+              participant CO as CustomerOnboarding.Api
+              participant CODB as CustomerOnboarding DB
+              participant DOC as Documents.Api
+              participant DOCDB as Documents DB
+
+              User->>UI: Opens "My application" page
+              UI->>CO: GET /applications/{id}
+              (X-User-Id header)
+
+              activate CO
+              CO->>CODB: Load OnboardingApplication
+              + RequiredDocuments
+              CODB-->>CO: Application + document references
+
+              Note over CO: For each reference,
+              need current status from Documents
+
+              CO->>DOC: GET /api/documents?ids=[...]
+              (batch fetch by IDs)
+
+              activate DOC
+              DOC->>DOCDB: Query documents by IDs
+              (filter by owner)
+              DOCDB-->>DOC: Document metadata + statuses
+              DOC-->>CO: 200 OK
+              [{ id, status, fileName, ... }]
+              deactivate DOC
+
+              Note over CO: Merge: enrich references
+              with current statuses
+
+              CO-->>UI: 200 OK
+              { application, documents[] }
+              deactivate CO
+
+              UI-->>User: Renders page with
+              documents and their statuses
+        </div>
+
+        <h2>Solution structure</h2>
+        <pre><code>/src
+  /Documents
+    Documents.Domain
+    Documents.Application
+    Documents.Infrastructure
+    Documents.Api
+  /CustomerOnboarding
+    CustomerOnboarding.Domain
+    CustomerOnboarding.Application
+    CustomerOnboarding.Infrastructure
+    CustomerOnboarding.Api
+  /Ui
+    CustomerOnboarding.Ui
+/tests
+  Documents.Tests
+  CustomerOnboarding.Tests
+/notes
+  orientation.md (from Milestone 1)
+  decisions.md (where you log design choices)
+docker-compose.yml
+.env
+README.md</code></pre>
+
+        <h2>The Azurite connection string</h2>
+        <p>Memorize this, it's the same everywhere:</p>
+        <pre><code>UseDevelopmentStorage=true</code></pre>
+        <p>This is a magic shorthand that the Azure SDK resolves to:</p>
+        <pre><code>DefaultEndpointsProtocol=http;
+AccountName=devstoreaccount1;
+AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;
+BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;</code></pre>
+        <p>That account key is <strong>not a secret</strong>. It's hardcoded by Microsoft for all Azurite users. Don't be surprised when you see it in tutorials.</p>
+
+        <h2>Inside Docker, host names change</h2>
+        <table>
+          <thead>
+            <tr><th>What</th><th>Outside Docker</th><th>Inside Docker</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Azurite blob</td><td><code>http://localhost:10000</code></td><td><code>http://azurite:10000</code></td></tr>
+            <tr><td>MSSQL</td><td><code>localhost,1433</code></td><td><code>mssql,1433</code></td></tr>
+            <tr><td>Documents.Api</td><td><code>http://localhost:5001</code></td><td><code>http://documents-api:8080</code></td></tr>
+            <tr><td>CustomerOnboarding.Api</td><td><code>http://localhost:5002</code></td><td><code>http://customeronboarding-api:8080</code></td></tr>
+          </tbody>
+        </table>
+
+        <h2>EF Core migration commands</h2>
+        <pre><code># Create a migration
+dotnet ef migrations add &lt;Name&gt; \
+  --project src/Documents/Documents.Infrastructure \
+  --startup-project src/Documents/Documents.Api
+
+# Apply migrations
+dotnet ef database update \
+  --project src/Documents/Documents.Infrastructure \
+  --startup-project src/Documents/Documents.Api
+
+# Generate a SQL script (for review)
+dotnet ef migrations script \
+  --project src/Documents/Documents.Infrastructure \
+  --startup-project src/Documents/Documents.Api</code></pre>
+
+        <h2>Useful one-liners</h2>
+        <pre><code># Bring up the whole stack
+docker compose up
+
+# Bring down the stack, keep data
+docker compose down
+
+# Bring down the stack and wipe data
+docker compose down -v
+
+# Tail logs from a single service
+docker compose logs -f documents-api
+
+# Restart one service
+docker compose restart documents-api
+
+# Open a shell inside a container
+docker compose exec documents-api /bin/bash</code></pre>
+      </div>
+
