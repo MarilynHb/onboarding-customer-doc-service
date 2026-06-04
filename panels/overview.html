@@ -24,9 +24,9 @@
 
   <ul>
     <li><strong>Domain</strong> — entities, enums, business rules. The heart of the service. No dependencies on anything else.</li>
+    <li><strong>Store</strong> — the data layer. EF Core, the <code>DbContext</code>, the concrete implementation of the store interfaces. This is the only layer that knows about the database.</li>
     <li><strong>Application</strong> — the contracts. Interfaces like <code>ICustomerStore</code>, the DTOs, and the validation rules. It says <em>what</em> the service needs, not <em>how</em> it's done.</li>
     <li><strong>Service</strong> — the use cases. Classes like <code>CustomerService</code> that orchestrate the business logic. They depend on the Application's interfaces, never on a concrete database.</li>
-    <li><strong>Store</strong> — the data layer. EF Core, the <code>DbContext</code>, the concrete implementation of the store interfaces. This is the only layer that knows about the database.</li>
     <li><strong>Api</strong> — controllers and <code>Program.cs</code>. The composition root that wires everything together through dependency injection.</li>
     <li><strong>Common</strong> — small shared helpers used across layers, like a <code>ServiceResult</code> type. Keep it minimal.</li>
   </ul>
@@ -76,9 +76,9 @@
   <ul>
     <li><strong>Step 1 — Orientation:</strong> read, predict, scaffold the empty six-project solution</li>
     <li><strong>Step 2 — Domain:</strong> the <code>Customer</code> entity and <code>OnboardingStatus</code> enum, with tests</li>
-    <li><strong>Step 3 — Application contracts:</strong> interfaces, DTOs, validation rules</li>
-    <li><strong>Step 4 — Service layer:</strong> <code>CustomerService</code> against an in-memory fake store</li>
-    <li><strong>Step 5 — Store + database:</strong> EF Core, MSSQL, enum mapping, migrations</li>
+    <li><strong>Step 3 — Store + database:</strong> EF Core, MSSQL, enum mapping, migrations</li>
+    <li><strong>Step 4 — Application contracts:</strong> interfaces, DTOs, validation rules</li>
+    <li><strong>Step 5 — Service layer:</strong> <code>CustomerService</code> against an in-memory fake store</li>
     <li><strong>Step 6 — Api layer:</strong> controllers, fake auth, first true end-to-end</li>
     <li><strong>Step 7 — Docker:</strong> containerize the Api and MSSQL, run with compose</li>
     <li><strong>Step 8 — Blazor UI:</strong> a small frontend so you see it work in a browser</li>
