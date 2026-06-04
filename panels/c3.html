@@ -18,21 +18,17 @@
   <p>Inside <code>CustomerService.Store</code>:</p>
 
   <ul>
-    <li><code>CustomerDbContext</code> with a <code>DbSet</code> for each entity: <code>Customers</code>, <code>IndividualProfiles</code>, <code>CompanyProfiles</code>, <code>CustomerIdentifications</code>, <code>OnboardingApplications</code>.</li>
-    <li><code>OnModelCreating</code> overrides where you need them: the one-to-one between <code>Customer</code> and each profile, the one-to-many for identifications, the one-to-one with <code>OnboardingApplication</code>. Enums stored as strings, not ints (more on that below).</li>
+    <li><code>CustomerManagementDbContext</code> with a <code>DbSet</code> for each entity: <code>Customers</code>, <code>IndividualProfiles</code>, <code>CorporateProfiles</code>, <code>CustomerIdentifications</code>, <code>OnboardingApplications</code>.</li>
+    <li><code>OnModelCreating</code> overrides where you need them: the one-to-one between <code>Customer</code> and each profile, the one-to-many for identifications, the one-to-one with <code>OnboardingApplication</code>.</li>
     <li>A connection string in <code>appsettings.json</code> pointing at a local MSSQL.</li>
-    <li>An MSSQL container running through <code>docker-compose.yml</code>. Azurite is not needed yet.</li>
     <li>Your first migration, applied to the database.</li>
-    <li>A small console runner or a test that creates a <code>Customer</code> with a profile and an identification, saves it, and reads it back. Proof the wiring works.</li>
   </ul>
 
   <h2>What you'll learn</h2>
   <ul>
     <li>EF Core: <code>DbContext</code>, <code>DbSet</code>, <code>OnModelCreating</code>, change tracking, <code>SaveChangesAsync</code></li>
     <li>How navigation properties become foreign keys in the database</li>
-    <li>Why enums stored as strings are safer than enums stored as ints</li>
     <li>EF Core migrations: how they are generated, how they are applied, what they actually do</li>
-    <li>Running MSSQL in Docker, and what to use on Apple Silicon</li>
     <li>Connection strings, where they live, and what each piece means</li>
   </ul>
 
@@ -43,20 +39,14 @@
     <li>Add <code>docker-compose.yml</code> at the solution root with an MSSQL service. Use <code>mcr.microsoft.com/mssql/server:2022-latest</code> on Windows or Intel Mac. On Apple Silicon, use <code>mcr.microsoft.com/azure-sql-edge</code> instead — the full SQL Server image will not run there.</li>
     <li>Run <code>docker compose up</code>. Verify you can connect with Azure Data Studio or your tool of choice.</li>
     <li>Put the connection string in <code>appsettings.json</code> on whichever startup project will run migrations (likely <code>CustomerService.Api</code> if it exists, or a temporary console project).</li>
-    <li>In <code>OnModelCreating</code>, configure what EF cannot guess: the one-to-one relationships (<code>Customer</code> to <code>IndividualProfile</code>, etc.), and the enum-to-string conversion using <code>.HasConversion&lt;string&gt;()</code> on each enum property.</li>
+    <li>In <code>OnModelCreating</code>, adding needed configuration for EF: the one-to-one relationships (<code>Customer</code> to <code>IndividualProfile</code>, etc.).</li>
     <li>Run your first migration: <code>dotnet ef migrations add InitialCreate --project CustomerService.Store --startup-project CustomerService.Api</code>. Open the generated migration file and read it. Every line corresponds to something you wrote.</li>
-    <li>Apply it: <code>dotnet ef database update</code>. Open the database and look at the tables.</li>
-    <li>Write a small piece of code that constructs a Pending <code>Customer</code> with an <code>IndividualProfile</code> and one <code>CustomerIdentification</code>, attaches a Draft <code>OnboardingApplication</code>, calls <code>SaveChangesAsync</code>, then queries it back with <code>Include</code> for the navigation properties. Confirm everything round-trips.</li>
+    <li>Apply it: <code>dotnet ef database update</code>. Open the database and look at the tables.</li> 
   </ol>
 
-  <div class="callout callout-accent">
+   <div class="callout callout-accent">
     <span class="callout-icon">◆</span>
-    <div><strong>C# depth moment: enums in the database.</strong> By default, EF Core stores an enum as its integer value. That means if you reorder <code>OnboardingApplicationStatus</code> later, the database becomes a mystery. <code>InReview</code> might suddenly mean <code>Rejected</code> if the order changed. Store enums as strings instead, with <code>property.HasConversion&lt;string&gt;()</code>. The column gets bigger; the system gets safer.</div>
-  </div>
-
-  <div class="callout">
-    <span class="callout-icon">⌥</span>
-    <div><strong>Design note: annotations now, Fluent API later.</strong> Your entities have <code>[Required]</code> and <code>[MaxLength]</code> annotations from the Domain step. EF Core picks those up automatically, so the database constraints will reflect them. That's fine for now. Later, a real argument can be made for moving these to Fluent API configuration in the Store layer, so the Domain stays free of persistence concerns. We will revisit this when the lesson lands better. For now: annotations stay where they are.</div>
+    <div><strong>C# depth moment: one-to-one relationships in EF Core.</strong> The Customer-Profile and Customer-Application relationships are one-to-one. This is less common than one-to-many, and EF Core doesn't have a simple convention for it. You need to configure it explicitly in <code>OnModelCreating</code>. Follow the docs carefully to get it right.</div>
   </div>
 
   <h2>Resources</h2>
@@ -75,13 +65,6 @@
         <div class="resource-note">For Customer ↔ IndividualProfile and Customer ↔ OnboardingApplication.</div>
       </div>
     </a>
-    <a class="resource" href="https://learn.microsoft.com/en-us/ef/core/modeling/value-conversions" target="_blank" rel="noopener">
-      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-      <div class="resource-content">
-        <div class="resource-title">Value conversions</div>
-        <div class="resource-note">How to store enums as strings instead of ints.</div>
-      </div>
-    </a>
     <a class="resource" href="https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/" target="_blank" rel="noopener">
       <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
       <div class="resource-content">
@@ -89,18 +72,18 @@
         <div class="resource-note">Creating, applying, and reading what they do.</div>
       </div>
     </a>
-    <a class="resource" href="https://hub.docker.com/_/microsoft-mssql-server" target="_blank" rel="noopener">
+    <a class="resource" href="https://learn.microsoft.com/en-us/ef/core/providers/sql-server/?tabs=dotnet-core-cli%2Csqlserver" target="_blank" rel="noopener">
       <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
       <div class="resource-content">
-        <div class="resource-title">MSSQL on Docker Hub</div>
-        <div class="resource-note">Image tags, environment variables, port mapping.</div>
+        <div class="resource-title">MSSQL Provider for EF Core</div>
+        <div class="resource-note">Microsoft Learn</div>
       </div>
     </a>
-    <a class="resource" href="https://learn.microsoft.com/en-us/azure/azure-sql-edge/disconnected-deployment" target="_blank" rel="noopener">
+    <a class="resource" href="https://dotnetfullstackdev.medium.com/appsettings-in-net-core-the-game-changer-for-configurations-a994d842e34c" target="_blank" rel="noopener">
       <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
       <div class="resource-content">
-        <div class="resource-title">Azure SQL Edge in Docker</div>
-        <div class="resource-note">Use this on Apple Silicon if the main MSSQL image will not run.</div>
+        <div class="resource-title">Storing Connection Strings</div>
+        <div class="resource-note">Using appsettings.json in .NET Core Medium Article.</div>
       </div>
     </a>
   </div>
@@ -108,10 +91,7 @@
   <div class="questions">
     <h4>Questions to be able to answer</h4>
     <ol>
-      <li>What does a migration actually contain? Walk me through the file EF generated.</li>
-      <li>Why store enums as strings instead of ints?</li>
-      <li>When you saved a customer with a profile and an identification in one call, how many INSERTs did EF run? How do you know?</li>
-      <li>What does <code>Include</code> do, and what happens to your query if you forget it?</li>
+      <li>What does a migration actually contain? What doe we have in the file EF generated.</li>
       <li>If you change a field on an entity and add a new migration, what shows up in the new migration file?</li>
     </ol>
   </div>
