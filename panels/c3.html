@@ -99,32 +99,23 @@
 
     <li>
       <strong>Add the EF Core NuGet packages — in the right projects.</strong> Not every package belongs everywhere. Here is what goes where and why:
-      <table style="width:100%; border-collapse:collapse; margin-top:0.5rem; font-size:0.9em;">
-        <thead>
-          <tr>
-            <th style="text-align:left; padding:6px 10px; border-bottom:1px solid var(--border);">Package</th>
-            <th style="text-align:left; padding:6px 10px; border-bottom:1px solid var(--border);">Add to</th>
-            <th style="text-align:left; padding:6px 10px; border-bottom:1px solid var(--border);">Why</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>Microsoft.EntityFrameworkCore</code></td>
-            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>CustomerService.Store</code></td>
-            <td style="padding:6px 10px; border-bottom:1px solid var(--border);">Core EF library — <code>DbContext</code>, <code>DbSet</code>, LINQ-to-SQL translation. The Store project is the only one that should have a direct dependency on EF.</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>Microsoft.EntityFrameworkCore.SqlServer</code></td>
-            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>CustomerService.Store</code></td>
-            <td style="padding:6px 10px; border-bottom:1px solid var(--border);">The SQL Server database provider. EF Core is database-agnostic by design; this package is what teaches it how to talk to MSSQL specifically.</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 10px;"><code>Microsoft.EntityFrameworkCore.Design</code></td>
-            <td style="padding:6px 10px;"><code>CustomerService.Api</code></td>
-            <td style="padding:6px 10px;">Design-time tooling required by the <code>dotnet ef</code> CLI. It must live in the <em>startup project</em> because that is the project <code>dotnet ef</code> boots to find your <code>DbContext</code> and read configuration. It is not needed at runtime.</td>
-          </tr>
-        </tbody>
-      </table>
+      <div style="display:flex; flex-direction:column; gap:0.6rem; margin-top:0.75rem; font-size:0.9em;">
+        <div style="border:1px solid var(--border); border-radius:6px; padding:0.75rem 1rem;">
+          <div><code>Microsoft.EntityFrameworkCore</code></div>
+          <div style="margin-top:0.35rem;">Add to: <code>CustomerService.Store</code></div>
+          <div style="margin-top:0.35rem; opacity:0.85;">Core EF library — <code>DbContext</code>, <code>DbSet</code>, LINQ-to-SQL translation. The Store project is the only one that should have a direct dependency on EF.</div>
+        </div>
+        <div style="border:1px solid var(--border); border-radius:6px; padding:0.75rem 1rem;">
+          <div><code>Microsoft.EntityFrameworkCore.SqlServer</code></div>
+          <div style="margin-top:0.35rem;">Add to: <code>CustomerService.Store</code></div>
+          <div style="margin-top:0.35rem; opacity:0.85;">The SQL Server database provider. EF Core is database-agnostic by design; this package is what teaches it how to talk to MSSQL specifically.</div>
+        </div>
+        <div style="border:1px solid var(--border); border-radius:6px; padding:0.75rem 1rem;">
+          <div><code>Microsoft.EntityFrameworkCore.Design</code></div>
+          <div style="margin-top:0.35rem;">Add to: <code>CustomerService.Api</code></div>
+          <div style="margin-top:0.35rem; opacity:0.85;">Design-time tooling required by the <code>dotnet ef</code> CLI. It must live in the <em>startup project</em> because that is the project <code>dotnet ef</code> boots to find your <code>DbContext</code> and read configuration. It is not needed at runtime.</div>
+        </div>
+      </div>
       To add a package from the terminal (run from the solution root):
       <pre><code>dotnet add CustomerService.Store package Microsoft.EntityFrameworkCore
 dotnet add CustomerService.Store package Microsoft.EntityFrameworkCore.SqlServer
