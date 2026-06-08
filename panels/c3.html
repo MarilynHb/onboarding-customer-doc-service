@@ -20,7 +20,7 @@
   <ul>
     <li><code>CustomerManagementDbContext</code> with a <code>DbSet</code> for each entity: <code>Customers</code>, <code>IndividualProfiles</code>, <code>CorporateProfiles</code>, <code>CustomerIdentifications</code>, <code>OnboardingApplications</code>.</li>
     <li><code>OnModelCreating</code> overrides where you need them: the one-to-one between <code>Customer</code> and each profile, the one-to-many for identifications, the one-to-one with <code>OnboardingApplication</code>.</li>
-    <li>A connection string in <code>appsettings.json</code> pointing at a local MSSQL.</li>
+    <li>A connection string in <code>appsettings.json</code> in a new <code>CustomerService.Api</code> project, pointing at your local MSSQL container.</li>
     <li>Your first migration, applied to the database.</li>
   </ul>
 
@@ -30,21 +30,146 @@
     <li>How navigation properties become foreign keys in the database</li>
     <li>EF Core migrations: how they are generated, how they are applied, what they actually do</li>
     <li>Connection strings, where they live, and what each piece means</li>
+    <li>Docker basics: images vs containers, and running SQL Server locally without a full install</li>
   </ul>
 
   <h2>Suggested approach</h2>
+
+  <div class="callout callout-accent">
+    <span class="callout-icon">◆</span>
+    <div>
+      <strong>New tool: Docker.</strong> You are about to run SQL Server without installing SQL Server. Docker lets you run software inside isolated <em>containers</em> — lightweight, self-contained environments that bundle everything a program needs to run. Two concepts to internalize before you start:
+      <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+        <li>An <strong>image</strong> is a read-only blueprint (a packaged snapshot of the server and all its dependencies). You pull it once from a registry and it lives on your machine.</li>
+        <li>A <strong>container</strong> is a running instance of an image. You can start it, stop it, and throw it away. Nothing leaks onto your host machine outside the container.</li>
+      </ul>
+      For local development this is far cleaner than a full SQL Server install: one command starts the database, another stops it, and your machine stays clean.
+    </div>
+  </div>
+
   <ol>
-    <li>Add the EF Core packages to <code>CustomerService.Store</code>: <code>Microsoft.EntityFrameworkCore</code>, <code>Microsoft.EntityFrameworkCore.SqlServer</code>, <code>Microsoft.EntityFrameworkCore.Design</code>.</li>
-    <li>Write <code>CustomerDbContext</code>. Start with the <code>DbSet</code> properties only. Build it.</li>
-    <li>Add <code>docker-compose.yml</code> at the solution root with an MSSQL service. Use <code>mcr.microsoft.com/mssql/server:2022-latest</code> on Windows or Intel Mac. On Apple Silicon, use <code>mcr.microsoft.com/azure-sql-edge</code> instead — the full SQL Server image will not run there.</li>
-    <li>Run <code>docker compose up</code>. Verify you can connect with Azure Data Studio or your tool of choice.</li>
-    <li>Put the connection string in <code>appsettings.json</code> on whichever startup project will run migrations (likely <code>CustomerService.Api</code> if it exists, or a temporary console project).</li>
-    <li>In <code>OnModelCreating</code>, adding needed configuration for EF: the one-to-one relationships (<code>Customer</code> to <code>IndividualProfile</code>, etc.).</li>
-    <li>Run your first migration: <code>dotnet ef migrations add InitialCreate --project CustomerService.Store --startup-project CustomerService.Api</code>. Open the generated migration file and read it. Every line corresponds to something you wrote.</li>
-    <li>Apply it: <code>dotnet ef database update</code>. Open the database and look at the tables.</li> 
+    <li>
+      <strong>Pull the SQL Server image.</strong> Open a terminal and run:
+      <pre><code>docker pull mcr.microsoft.com/mssql/server:2022-latest</code></pre>
+      This downloads the official Microsoft SQL Server 2022 image from the Microsoft Container Registry. <em>Pulling</em> means downloading — Docker fetches every layer of the image and stores it locally. This only needs to happen once. After that the image is cached and future containers start without re-downloading anything.
+    </li>
+
+    <li>
+      <strong>Start a SQL Server container.</strong> On Windows or Intel Mac, run:
+      <pre><code>docker run -e "ACCEPT_EULA=Y" ^
+  -e "MSSQL_SA_PASSWORD=YourPassword123!" ^
+  -p 1433:1433 ^
+  --name sqlserver ^
+  -d mcr.microsoft.com/mssql/server:2022-latest</code></pre>
+      On Apple Silicon (M1/M2/M3), use <code>mcr.microsoft.com/azure-sql-edge</code> instead — the full SQL Server image does not run on ARM. What each flag does:
+      <ul>
+        <li><code>-e "ACCEPT_EULA=Y"</code> — SQL Server requires you to accept the license agreement. Without this the container exits immediately.</li>
+        <li><code>-e "MSSQL_SA_PASSWORD=..."</code> — Sets the password for the <code>sa</code> (system administrator) login. SQL Server enforces complexity rules: at least 8 characters, mixed case, at least one digit, at least one symbol.</li>
+        <li><code>-p 1433:1433</code> — Maps port <code>1433</code> on your machine to port <code>1433</code> inside the container. <code>1433</code> is SQL Server's default port. The format is <code>host-port:container-port</code>.</li>
+        <li><code>--name sqlserver</code> — Gives the container a name so you can reference it with <code>docker stop sqlserver</code>, <code>docker start sqlserver</code>, etc., instead of using its auto-generated ID.</li>
+        <li><code>-d</code> — Detached mode. The container runs in the background and you get your terminal back immediately.</li>
+      </ul>
+    </li>
+
+    <li>
+      <strong>Verify the container is running.</strong>
+      <pre><code>docker ps</code></pre>
+      You should see a row for <code>sqlserver</code> with a status of <code>Up X seconds</code>. If it does not appear, run <code>docker ps -a</code> to list stopped containers too, then inspect the logs:
+      <pre><code>docker logs sqlserver</code></pre>
+      The most common cause of failure is a password that doesn't meet the complexity rules — try a stronger one and re-run.
+    </li>
+
+    <li>
+      <strong>Connect with SSMS or Azure Data Studio.</strong> Use these connection details:
+      <ul>
+        <li><strong>Server name:</strong> <code>localhost,1433</code></li>
+        <li><strong>Authentication:</strong> SQL Server Authentication</li>
+        <li><strong>Login:</strong> <code>sa</code></li>
+        <li><strong>Password:</strong> <code>YourPassword123!</code></li>
+        <li><strong>Encryption:</strong> Set to <em>Optional</em> (or disable)</li>
+        <li><strong>Trust server certificate:</strong> Check this. Docker containers use self-signed certificates, so you need to explicitly trust them or the connection will be refused.</li>
+        <li><strong>Connection timeout:</strong> The default 15 seconds is fine.</li>
+      </ul>
+      Once connected you will see the server in Object Explorer with only the system databases. No application database yet — that appears after you run the migration.
+    </li>
+
+    <li>
+      <strong>Create <code>CustomerService.Api</code>.</strong> Add a new ASP.NET Core Web API project to the solution. It has two roles in this step: it is the <em>startup project</em> that the EF CLI needs to bootstrap your application and discover the <code>DbContext</code>, and it is where the connection string lives in <code>appsettings.json</code>. It does not need to expose any endpoints yet.
+    </li>
+
+    <li>
+      <strong>Add the EF Core NuGet packages — in the right projects.</strong> Not every package belongs everywhere. Here is what goes where and why:
+      <table style="width:100%; border-collapse:collapse; margin-top:0.5rem; font-size:0.9em;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:6px 10px; border-bottom:1px solid var(--border);">Package</th>
+            <th style="text-align:left; padding:6px 10px; border-bottom:1px solid var(--border);">Add to</th>
+            <th style="text-align:left; padding:6px 10px; border-bottom:1px solid var(--border);">Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>Microsoft.EntityFrameworkCore</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>CustomerService.Store</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);">Core EF library — <code>DbContext</code>, <code>DbSet</code>, LINQ-to-SQL translation. The Store project is the only one that should have a direct dependency on EF.</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>Microsoft.EntityFrameworkCore.SqlServer</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>CustomerService.Store</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);">The SQL Server database provider. EF Core is database-agnostic by design; this package is what teaches it how to talk to MSSQL specifically.</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px;"><code>Microsoft.EntityFrameworkCore.Design</code></td>
+            <td style="padding:6px 10px;"><code>CustomerService.Api</code></td>
+            <td style="padding:6px 10px;">Design-time tooling required by the <code>dotnet ef</code> CLI. It must live in the <em>startup project</em> because that is the project <code>dotnet ef</code> boots to find your <code>DbContext</code> and read configuration. It is not needed at runtime.</td>
+          </tr>
+        </tbody>
+      </table>
+      To add a package from the terminal (run from the solution root):
+      <pre><code>dotnet add CustomerService.Store package Microsoft.EntityFrameworkCore
+dotnet add CustomerService.Store package Microsoft.EntityFrameworkCore.SqlServer
+dotnet add CustomerService.Api package Microsoft.EntityFrameworkCore.Design</code></pre>
+      You also need the EF global CLI tool if you haven't installed it before:
+      <pre><code>dotnet tool install --global dotnet-ef</code></pre>
+    </li>
+
+    <li>
+      <strong>Write <code>CustomerManagementDbContext</code></strong> in <code>CustomerService.Store</code>. Start with the <code>DbSet</code> properties only. Build it and make sure it compiles before moving on.
+    </li>
+
+    <li>
+      <strong>Add the connection string to <code>appsettings.json</code></strong> in <code>CustomerService.Api</code>:
+      <pre><code>"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost,1433;Database=CustomerManagement;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True;"
+}</code></pre>
+      Then register the <code>DbContext</code> in <code>Program.cs</code>:
+      <pre><code>builder.Services.AddDbContext&lt;CustomerManagementDbContext&gt;(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));</code></pre>
+      <code>TrustServerCertificate=True</code> is required because the Docker container uses a self-signed certificate — the same reason you checked that box in SSMS.
+    </li>
+
+    <li>
+      <strong>Configure relationships in <code>OnModelCreating</code>.</strong> Add explicit configuration for the one-to-one relationships (<code>Customer</code> to <code>IndividualProfile</code>, <code>Customer</code> to <code>CorporateProfile</code>, <code>Customer</code> to <code>OnboardingApplication</code>). EF Core does not infer one-to-one by convention — it needs you to spell them out.
+    </li>
+
+    <li>
+      <strong>Run your first migration.</strong> From the solution root (not inside a project folder):
+      <pre><code>dotnet ef migrations add InitialCreate --project CustomerService.Store --startup-project CustomerService.Api</code></pre>
+      <ul>
+        <li><code>--project CustomerService.Store</code> — tells EF where the <code>DbContext</code> lives and where to write the migration files.</li>
+        <li><code>--startup-project CustomerService.Api</code> — the project EF boots to read your DI registration and connection string. This is why <code>Design</code> must be added there.</li>
+      </ul>
+      Open the generated file under <code>CustomerService.Store/Migrations/</code> and read it. Every <code>CreateTable</code> call corresponds to an entity you wrote, and every column corresponds to a property.
+    </li>
+
+    <li>
+      <strong>Apply the migration to the database.</strong>
+      <pre><code>dotnet ef database update --project CustomerService.Store --startup-project CustomerService.Api</code></pre>
+      Then go back to SSMS or Azure Data Studio and refresh. You should see the <code>CustomerManagement</code> database with all your tables.
+    </li>
   </ol>
 
-   <div class="callout callout-accent">
+  <div class="callout callout-accent">
     <span class="callout-icon">◆</span>
     <div><strong>C# depth moment: one-to-one relationships in EF Core.</strong> The Customer-Profile and Customer-Application relationships are one-to-one. This is less common than one-to-many, and EF Core doesn't have a simple convention for it. You need to configure it explicitly in <code>OnModelCreating</code>. Follow the docs carefully to get it right.</div>
   </div>
@@ -86,13 +211,36 @@
         <div class="resource-note">Using appsettings.json in .NET Core Medium Article.</div>
       </div>
     </a>
+    <a class="resource" href="https://docs.docker.com/get-started/docker-overview/" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">Docker overview</div>
+        <div class="resource-note">What Docker is, images vs containers, and how the runtime works.</div>
+      </div>
+    </a>
+    <a class="resource" href="https://hub.docker.com/_/microsoft-mssql-server" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">SQL Server on Docker Hub</div>
+        <div class="resource-note">Official image page with available tags, environment variables, and platform notes.</div>
+      </div>
+    </a>
+    <a class="resource" href="https://learn.microsoft.com/en-us/ef/core/cli/dotnet" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">dotnet ef CLI reference</div>
+        <div class="resource-note">All the flags for migrations add, database update, and when to use --project vs --startup-project.</div>
+      </div>
+    </a>
   </div>
 
   <div class="questions">
     <h4>Questions to be able to answer</h4>
     <ol>
-      <li>What does a migration actually contain? What doe we have in the file EF generated.</li>
+      <li>What does a migration actually contain? What do we have in the file EF generated.</li>
       <li>If you change a field on an entity and add a new migration, what shows up in the new migration file?</li>
+      <li>Why does <code>Microsoft.EntityFrameworkCore.Design</code> go in the API project and not the Store project?</li>
+      <li>What is the difference between a Docker image and a Docker container?</li>
     </ol>
   </div>
 
