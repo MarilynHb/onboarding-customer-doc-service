@@ -69,9 +69,9 @@ function buildSidebarHtml() {
       <div class="nav-group-label">Part 1 · Customer service</div>
       <button class="nav-item" data-tab="c1"><span class="nav-num">1</span><span>Orientation</span></button>
       <button class="nav-item" data-tab="c2"><span class="nav-num">2</span><span>Domain</span></button>
-      <button class="nav-item" data-tab="c3"><span class="nav-num">5</span><span>Store + database</span></button>
-      <button class="nav-item" data-tab="c4"><span class="nav-num">3</span><span>Application</span></button>
-      <button class="nav-item" data-tab="c5"><span class="nav-num">4</span><span>Service layer</span></button>
+      <button class="nav-item" data-tab="c3"><span class="nav-num">3</span><span>Store + database</span></button>
+      <button class="nav-item" data-tab="c4"><span class="nav-num">4</span><span>Application</span></button>
+      <button class="nav-item" data-tab="c5"><span class="nav-num">5</span><span>Service layer</span></button>
       <button class="nav-item" data-tab="c6"><span class="nav-num">6</span><span>Api layer</span></button>
       <button class="nav-item" data-tab="c7"><span class="nav-num">7</span><span>Docker</span></button>
       <button class="nav-item" data-tab="c8"><span class="nav-num">8</span><span>Blazor UI</span></button>
