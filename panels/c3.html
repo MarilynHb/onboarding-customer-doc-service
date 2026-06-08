@@ -55,13 +55,13 @@
     </li>
 
     <li>
-      <strong>Start a SQL Server container.</strong> On Windows or Intel Mac, run:
+      <strong>Start a SQL Server container.</strong>
       <pre><code>docker run -e "ACCEPT_EULA=Y" ^
   -e "MSSQL_SA_PASSWORD=YourPassword123!" ^
   -p 1433:1433 ^
   --name sqlserver ^
   -d mcr.microsoft.com/mssql/server:2022-latest</code></pre>
-      On Apple Silicon (M1/M2/M3), use <code>mcr.microsoft.com/azure-sql-edge</code> instead — the full SQL Server image does not run on ARM. What each flag does:
+      What each flag does:
       <ul>
         <li><code>-e "ACCEPT_EULA=Y"</code> — SQL Server requires you to accept the license agreement. Without this the container exits immediately.</li>
         <li><code>-e "MSSQL_SA_PASSWORD=..."</code> — Sets the password for the <code>sa</code> (system administrator) login. SQL Server enforces complexity rules: at least 8 characters, mixed case, at least one digit, at least one symbol.</li>
