@@ -1,4 +1,4 @@
-<div class="panel" data-panel="c5">
+<div class="panel" data-panel="c5" data-has-notes="true">
   <div class="header">
     <div class="breadcrumb">Customer Service · Step 5</div>
     <h1>The Service layer</h1>
@@ -8,6 +8,9 @@
       <span class="meta-pill">Onboarding flow</span>
     </div>
   </div>
+
+  <div class="named-notes" data-author="Marilyn" hidden></div>
+  <div class="named-notes" data-author="Stylianos" hidden></div>
 
   <p>So far your handlers have done thin work: take a request, save an entity, return a response. That stops being enough once you have a flow. Onboarding a customer is not just one INSERT; it is an ordered set of steps that need to succeed or fail together. Approval is not a status change; it has consequences elsewhere on the customer. This is the layer where those flows live.</p>
 

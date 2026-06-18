@@ -1,4 +1,4 @@
-<div class="panel" data-panel="c7">
+<div class="panel" data-panel="c7" data-has-notes="true">
   <div class="header">
     <div class="breadcrumb">Part 1 · Customer service · Step 7</div>
     <h1>Docker</h1>
@@ -8,6 +8,9 @@
       <span class="meta-pill">One command up</span>
     </div>
   </div>
+
+  <div class="named-notes" data-author="Marilyn" hidden></div>
+  <div class="named-notes" data-author="Stylianos" hidden></div>
 
   <p>You already run MSSQL in Docker. Now you containerize the Api itself, so the whole service (api plus database) comes up with a single <code>docker compose up</code>. This is how we run things, and getting it working once makes the document service much smoother later.</p>
 
