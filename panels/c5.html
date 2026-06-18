@@ -12,24 +12,26 @@
   <div class="named-notes" data-author="Marilyn" hidden></div>
   <div class="named-notes" data-author="Stylianos" hidden></div>
 
-  <p>So far your handlers have done thin work: take a request, save an entity, return a response. That stops being enough once you have a flow. Onboarding a customer is not just one INSERT; it is an ordered set of steps that need to succeed or fail together. Approval is not a status change; it has consequences elsewhere on the customer. This is the layer where those flows live.</p>
+  <p>In Step 4 your handlers did the entity construction directly: take a request, build the customer graph, call <code>ICustomerRepository.AddAsync</code>, return a response. That was intentional — it made the wiring visible. It also made the handlers too long and too aware of business decisions that do not belong to them.</p>
 
-  <p>The Service layer sits between your handlers and the Store. Handlers ask "did this request arrive validly?" Services ask "what is the correct sequence of things to do to fulfil this request?"</p>
+  <p>Once you have a flow — onboarding a customer is not one INSERT but an ordered set of steps that must succeed or fail together; approving an application is not a status change but a state transition with consequences elsewhere — that logic needs a home that is not the handler. This is the layer where those flows live.</p>
+
+  <p>Handlers ask <em>"did this request arrive validly?"</em> Services ask <em>"what is the correct sequence of things to do to fulfil this request?"</em></p>
 
   <h2>What you'll build</h2>
 
   <p>Inside <code>CustomerService.Service</code>:</p>
 
   <ul>
-    <li><strong><code>ICustomerOnboardingService</code></strong> and its implementation <code>CustomerOnboardingService</code>. This is the service that owns the onboarding flow. It coordinates the work, decides what is allowed, and produces a result.</li>
+    <li><strong><code>ICustomerOnboardingService</code></strong> and its implementation <code>CustomerOnboardingService</code>. The interface and its implementation both live in the Service project. The service is injected with <code>ICustomerRepository</code> from Domain — the same interface your handlers used in Step 4, now used one layer deeper.</li>
 
     <li>An <strong>onboarding flow</strong> on this service that does the following in order, in a single transaction:
       <ol>
         <li>Build a new <code>Customer</code> in <code>Pending</code> status with the contact and address fields from the request.</li>
         <li>Build the right profile based on <code>CustomerType</code>: <code>IndividualProfile</code> or <code>CompanyProfile</code>.</li>
         <li>Build the <code>CustomerIdentification</code> records.</li>
-        <li>Build a <code>OnboardingApplication</code> in <code>Draft</code> status.</li>
-        <li>Hand the whole graph to <code>ICustomerStore.AddAsync</code>.</li>
+        <li>Build an <code>OnboardingApplication</code> in <code>Draft</code> status.</li>
+        <li>Hand the whole entity graph to <code>ICustomerRepository.AddAsync</code>.</li>
       </ol>
       If anything fails along the way, none of it should persist.
     </li>
@@ -38,7 +40,25 @@
 
     <li>A <strong><code>Result</code> or <code>ServiceResult</code> type</strong> in <code>CustomerService.Common</code>. A small type that wraps either a success value or a failure with reasons. The service returns one of these. The handler unwraps it and produces the response. This is how you communicate "this is not allowed right now" without throwing exceptions for control flow.</li>
 
-    <li><strong>Updated handlers</strong>. The Step 4 handlers that did the work directly should now call the service. The handler becomes: validate → call service → translate result to response.</li>
+    <li><strong>Updated handlers</strong>. The entity construction logic moves out of the handlers and into the service. Once you have done this, compare the handler before and after:
+      <pre style="margin:0.75rem 0 0;"><code>// Before (Step 4): handler builds the entity graph itself
+public async Task&lt;CustomerResponse&gt; HandleAsync(CreateCustomerRequest request)
+{
+    await _validator.ValidateAndThrowAsync(request);
+    var customer = new Customer { /* ... many lines ... */ };
+    await _repository.AddAsync(customer);
+    return MapToResponse(customer);
+}
+
+// After (Step 5): handler delegates to the service
+public async Task&lt;CustomerResponse&gt; HandleAsync(CreateCustomerRequest request)
+{
+    await _validator.ValidateAndThrowAsync(request);
+    var result = await _service.CreateAsync(request);
+    return result.Match(ok => ok.Value, fail => throw new ...);
+}</code></pre>
+      The handler's job is now exactly: validate → call service → translate result. Nothing else.
+    </li>
   </ul>
 
   <h2>What you'll learn</h2>
@@ -50,16 +70,17 @@
     <li>Where business rules belong: not in handlers, not in entities (yet), but in this layer that owns the flow</li>
   </ul>
 
-  <h2>Suggested approach</h2>
-  <ol>
-    <li>Start with <code>Result</code> or <code>ServiceResult</code> in <code>Common</code>. Make it generic if you want, or two types (one for success-only, one with a return value). Keep it small.</li>
-    <li>Write <code>ICustomerOnboardingService</code> with two methods: <code>CreateAsync</code> and <code>ApproveAsync</code>. Both return a <code>Result</code> of some kind.</li>
-    <li>Implement <code>CustomerOnboardingService.CreateAsync</code>. This is the long one: build the entity graph, hand it to the store, return success. The store's <code>SaveChangesAsync</code> wraps the inserts in one transaction automatically; you do not need to do anything special.</li>
-    <li>Implement <code>CustomerOnboardingService.ApproveAsync</code>. Load the application with its customer (<code>Include</code> the customer navigation). Check the status. If not <code>InReview</code>, return a failure. Otherwise, mutate both entities and save once.</li>
-    <li>Register the service in DI from your Application module's extension method. Scoped lifetime.</li>
-    <li>Update <code>CreateCustomerHandler</code> to call <code>CustomerOnboardingService.CreateAsync</code> instead of doing the work itself. The handler shrinks.</li>
-    <li>Add a new <code>ApproveCustomerHandler</code> and a new endpoint for it later (in the Api step). For now, focus on the service.</li>
-  </ol>
+  <h2>Where to start</h2>
+
+  <p>Start with <code>ServiceResult</code> in <code>Common</code> — it is small and everything else depends on it. Keep it minimal: a success case with an optional value, and a failure case with reasons.</p>
+
+  <p>Then define <code>ICustomerOnboardingService</code> in the Service project before implementing it. Think about what the handlers will need to call: at minimum, a method to create a customer and a method to approve an application. The interface signatures should reflect the handler's perspective, not the database's.</p>
+
+  <p>Implement <code>CreateAsync</code> first. This is where the entity construction logic from Step 4's handler moves. The service is injected with <code>ICustomerRepository</code> from Domain — the same interface, now one layer deeper. <code>SaveChangesAsync</code> inside the repository wraps all inserts in a single transaction; you do not need anything special for atomicity.</p>
+
+  <p>Then implement <code>ApproveAsync</code>. Think about what you need to load, what states are valid entry points for approval, what changes on both the application and the customer when approval succeeds, and what the service should return when approval is not allowed.</p>
+
+  <p>Once the service works, update the handlers. Inject <code>ICustomerOnboardingService</code> instead of <code>ICustomerRepository</code>. Register everything — service and its interface — in a new <code>AddCustomerService</code> extension method in the Service project.</p>
 
   <div class="callout">
     <span class="callout-icon">⌥</span>

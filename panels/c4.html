@@ -12,43 +12,54 @@
   <div class="named-notes" data-author="Marilyn" hidden></div>
   <div class="named-notes" data-author="Stylianos" hidden></div>
 
-  <p>You have entities and a working database. The step after this one is an API that exposes HTTP endpoints. But between the database and those endpoints, you need a layer that receives requests, validates them, and turns them into operations on your entities. That is the Application layer.</p>
+  <p>You have entities and a working database. The step after this one is an API that exposes HTTP endpoints. But between the database and those endpoints sits a layer that receives requests, validates them, and turns them into operations on your entities. That is the Application layer.</p>
 
-  <p>You are going to build it with plain classes and hand-wired dependency injection — no mediator library. The goal is to see the wiring clearly, not hide it behind abstractions.</p>
+  <p>You are going to build it with plain classes and hand-wired dependency injection — no mediator library. The goal is to see the wiring clearly, not hide it.</p>
 
   <h2>Where this fits</h2>
 
-  <p>Right now your chain stops at the database. After this step, the full path from an incoming request to stored data will look like this:</p>
+  <p>The full chain from an incoming request to stored data. The parts you are building now are highlighted; the rest is already done or comes next.</p>
 
   <div style="display:flex; flex-direction:column; align-items:flex-start; gap:0; margin: 1.5rem 0; font-size:0.9em;">
-    <div style="border:1px solid var(--border); border-radius:6px 6px 0 0; padding:0.6rem 1.1rem; background:var(--bg-secondary); width:100%; box-sizing:border-box;">
-      <strong>HTTP client</strong> — a browser, a mobile app, Postman, anything sending requests
+    <div style="border:1px solid var(--border); border-radius:6px 6px 0 0; padding:0.6rem 1.1rem; width:100%; box-sizing:border-box; opacity:0.5;">
+      <strong>HTTP client</strong> — a browser, a mobile app, Postman
     </div>
     <div style="width:1px; height:1.2rem; background:var(--border); margin-left:2rem;"></div>
-    <div style="border:1px solid var(--border); border-left: 3px solid var(--border); padding:0.6rem 1.1rem; width:100%; box-sizing:border-box; opacity:0.6;">
-      <strong>API layer</strong> — controllers that receive HTTP requests <em>(Step 5, not built yet)</em>
+    <div style="border:1px solid var(--border); padding:0.6rem 1.1rem; width:100%; box-sizing:border-box; opacity:0.5;">
+      <strong>Api</strong> — controllers that receive HTTP requests <em>(Step 6, not built yet)</em>
     </div>
     <div style="width:1px; height:1.2rem; background:var(--border); margin-left:2rem;"></div>
     <div style="border:2px solid var(--accent); border-radius:4px; padding:0.75rem 1.1rem; width:100%; box-sizing:border-box;">
-      <strong>Application layer</strong> — <em>you are building this now</em>
+      <strong>Application</strong> — <em>you are building this now</em>
       <ul style="margin:0.4rem 0 0; padding-left:1.2rem;">
         <li>DTOs: the shapes that travel in and out</li>
-        <li>Handlers: one class per use case</li>
-        <li>ICustomerStore: the contract this layer requires from persistence</li>
-        <li>Validators: ensure requests are well-formed before any work is done</li>
+        <li>Handlers: one class per use case, validate then act</li>
+        <li>Validators: reject bad input before any work is done</li>
+      </ul>
+    </div>
+    <div style="width:1px; height:1.2rem; background:var(--border); margin-left:2rem;"></div>
+    <div style="border:1px solid var(--border); padding:0.6rem 1.1rem; width:100%; box-sizing:border-box; opacity:0.5;">
+      <strong>Service</strong> — business flows and rules <em>(Step 5, not built yet)</em>
+    </div>
+    <div style="width:1px; height:1.2rem; background:var(--border); margin-left:2rem;"></div>
+    <div style="border:2px solid var(--accent); border-radius:4px; padding:0.75rem 1.1rem; width:100%; box-sizing:border-box;">
+      <strong>Domain</strong> — <em>also updated this step</em>
+      <ul style="margin:0.4rem 0 0; padding-left:1.2rem;">
+        <li>Entities and enums (already built in Step 2)</li>
+        <li><strong>ICustomerRepository</strong>: the persistence contract — defined here, in Domain</li>
       </ul>
     </div>
     <div style="width:1px; height:1.2rem; background:var(--border); margin-left:2rem;"></div>
     <div style="border:1px solid var(--border); border-radius:0 0 6px 6px; padding:0.75rem 1.1rem; width:100%; box-sizing:border-box; background:var(--bg-secondary);">
-      <strong>Store layer</strong> — what you built in Step 3
+      <strong>Store</strong> — what you built in Step 3
       <ul style="margin:0.4rem 0 0; padding-left:1.2rem;">
-        <li>CustomerStore: will implement ICustomerStore</li>
-        <li>CustomerManagementDbContext: talks to the database</li>
+        <li>CustomerRepository: <em>now implements ICustomerRepository</em></li>
+        <li>CustomerManagementDbContext</li>
       </ul>
     </div>
   </div>
 
-  <p>The API layer calls into the Application layer. The Application layer calls into the Store layer through an interface. Nothing in Application ever touches the DbContext directly.</p>
+  <p>For this step, your handlers call <code>ICustomerRepository</code> directly. In Step 5, the business logic between validation and persistence moves into a service — the handlers will shrink significantly. Building it the longer way first makes the reason for the service layer obvious.</p>
 
   <h2>Why not just use the DbContext in a controller?</h2>
 
@@ -60,73 +71,222 @@
     <li>Every controller that touches customers re-implements the same queries and validation.</li>
   </ul>
 
-  <p>A handler does not know or care whether it was called from an HTTP request, a background job, or a test. That separation is exactly the point. The payoff is visible the moment you write your second consumer.</p>
+  <p>A handler does not know or care whether it was called from an HTTP request, a background job, or a test. That separation is the point.</p>
 
   <h2>What you'll build</h2>
 
-  <p>Everything in this step lives inside a new <code>CustomerService.Application</code> project.</p>
+  <h3>ICustomerRepository — in Domain</h3>
 
-  <h3>ICustomerStore — the interface the Application layer defines</h3>
+  <p>Add a <code>Repositories</code> folder inside <code>CustomerService.Domain</code> and define <code>ICustomerRepository</code> there. This interface describes what any code that needs customer persistence can ask for: get by id, get by customer number, add, update, delete.</p>
 
-  <p>Instead of depending directly on the Store layer, the Application layer defines an interface that describes what it needs from persistence: get a customer by ID, get one by customer number, add one, update one, delete one. The interface lives here, in Application. A <code>CustomerStore</code> class in the Store layer implements it using the DbContext.</p>
+  <p>Placing it in Domain rather than in a Store or Application project is a deliberate choice. Domain is the core of the architecture — it knows nothing about databases, HTTP, or any framework. By defining the interface in Domain, you ensure that everything else (Service, Application, Store) depends inward on Domain, never the other way around. Store implements the interface; it does not own it.</p>
 
-  <p>This is dependency inversion in practice. Normally you might think Store is the foundation and Application builds on top of it. But here the dependency arrow runs the other way: Store depends on Application's interface, not the other way around. The consequence is that Application has no knowledge of how persistence works — it only knows what it needs. You could replace MSSQL with Postgres, or swap the DbContext for an in-memory implementation in tests, without touching a single line in Application.</p>
-
-  <div class="callout">
-    <span class="callout-icon">⌥</span>
-    <div><strong>On the CustomerStore class.</strong> Step 3 gave you a working DbContext and live tables. To implement <code>ICustomerStore</code>, you now need a <code>CustomerStore</code> class in the Store project that wraps the DbContext and satisfies the interface. Think about what operations your handlers will need — those become the methods. The DbContext stays inside the Store layer and never surfaces above it.</div>
-  </div>
+  <p>Then, in <code>CustomerService.Store</code>, create a <code>CustomerRepository</code> class that implements <code>ICustomerRepository</code> using your existing <code>CustomerManagementDbContext</code>.</p>
 
   <h3>DTOs — the shapes that cross the boundary</h3>
 
-  <p>A DTO (Data Transfer Object) is a plain class whose only job is to carry data in or out of your application. You need three:</p>
+  <p>A DTO (Data Transfer Object) is a plain class whose only job is to carry data in or out of your application. You need the following — including nested types for the sub-objects that travel with a customer:</p>
 
   <ul>
-    <li><strong><code>CreateCustomerRequest</code></strong> — what a caller must provide to create a customer</li>
-    <li><strong><code>UpdateCustomerRequest</code></strong> — what a caller provides to update one</li>
-    <li><strong><code>CustomerResponse</code></strong> — what your application returns</li>
+    <li><strong><code>CreateCustomerRequest</code></strong> — the top-level create payload, carrying type, contact info, and nested sub-objects</li>
+    <li><strong><code>IndividualProfileRequest</code></strong> — first name, last name, date of birth; only present when <code>CustomerType</code> is Individual</li>
+    <li><strong><code>CorporateProfileRequest</code></strong> — company name, registration number, VAT number; only present when <code>CustomerType</code> is Corporate</li>
+    <li><strong><code>IdentificationRequest</code></strong> — document type, number, expiry; at least one required</li>
+    <li><strong><code>UpdateCustomerRequest</code></strong> — what a caller provides to update an existing customer</li>
+    <li><strong><code>CustomerResponse</code></strong> — what your application returns for any read or write operation</li>
   </ul>
 
-  <p>These are not your entities. Consider what happens if you return a <code>Customer</code> entity directly from a handler: navigation properties that are null unless explicitly loaded will break JSON serialisation; internal fields that have no business being visible to callers will be exposed; and any change you make to the entity in the future — adding a field, renaming a property — immediately changes what callers receive, whether you intended that or not. A DTO gives you a stable, deliberate contract for the outside world that is entirely independent of how your domain is modelled internally.</p>
+  <p>These are not your entities. If you returned a <code>Customer</code> entity directly: navigation properties null unless explicitly loaded would break JSON serialisation; internal fields would be exposed to callers; and any property you add to <code>Customer</code> in the future would automatically appear in your public contract whether you intended that or not. A DTO gives you a stable, deliberate contract for the outside world, independent of how your domain is modelled internally.</p>
 
-  <p><code>CreateCustomerRequest</code> should carry enough to create the customer: their type, profile details (which differ between individual and corporate), at least one identification, and their address and contact information.</p>
+  <p><code>CreateCustomerRequest</code> carries the full graph: contact fields at the top level, exactly one profile nested inside (the type determines which), and a list of identifications. The handler constructs the equivalent entity graph from these.</p>
 
   <h3>Handlers — one class per use case</h3>
 
-  <p>Each handler has one public method. It receives a request DTO, performs its work through <code>ICustomerStore</code>, and returns a response DTO. You need at minimum a handler for creating, getting, updating, and deleting a customer.</p>
+  <p>Each handler has one public method. It validates the request, builds entities from it, persists them via <code>ICustomerRepository</code>, and returns a response DTO. You need a handler for each operation:</p>
 
-  <p>Keep handlers short. If a handler starts doing a lot of work — enforcing business rules, calculating derived state, coordinating across multiple entities — that is a signal that logic belonging in the Service layer (Step 5) has leaked in. The handler's job is to orchestrate, not to decide.</p>
+  <ul>
+    <li><strong><code>CreateCustomerHandler</code></strong> — builds the full entity graph: <code>Customer</code>, the appropriate profile (<code>IndividualProfile</code> or <code>CorporateProfile</code>), all <code>CustomerIdentification</code> records, and the <code>OnboardingApplication</code> in Draft status. All of this goes into a single <code>AddAsync</code> call — EF Core tracks the whole graph.</li>
+    <li><strong><code>GetCustomerHandler</code></strong> — retrieves a customer by id and maps it to a <code>CustomerResponse</code>.</li>
+    <li><strong><code>UpdateCustomerHandler</code></strong> — loads the customer, applies changes to the entity (including updating profile fields if provided), persists via <code>UpdateAsync</code>.</li>
+    <li><strong><code>DeleteCustomerHandler</code></strong> — loads the customer by id and calls <code>DeleteAsync</code>. EF Core cascades to related rows if your model is configured for it.</li>
+  </ul>
 
-  <p>For now, throw an exception when an operation fails (customer not found, duplicate detected). You can revisit typed error handling later once the plumbing is in place.</p>
+  <p>For now, handlers build the entity graph directly — constructing the customer, profile, and identifications from the request fields. This will feel slightly long. That is intentional: in Step 5, that construction logic moves to a service, and you will see exactly why the separation is useful once the handler shrinks to three lines.</p>
+
+  <p>Throw an exception when an operation fails (customer not found, etc.). You will introduce typed result types in Step 5.</p>
 
   <h3>Validators</h3>
 
-  <p>Add a FluentValidation validator for each request DTO. An email that does not look like an email should fail before a handler ever runs. A name that is empty, a date that is in the future when it should be in the past, a phone number that does not match a pattern — all caught at the validator. The handler should only run when the request is already known to be well-formed.</p>
+  <p>Add a FluentValidation validator for each request DTO. An email that does not look like an email should fail before a handler ever runs. A name that is empty, a phone number that does not match a pattern — all caught at the validator. The handler should only run once the request is already known to be well-formed.</p>
 
   <h3>DI registration</h3>
 
-  <p>Write an <code>AddCustomerApplication</code> extension method on <code>IServiceCollection</code>. It registers the handlers and the validators. The Api project calls this from <code>Program.cs</code>, just like it already calls the DbContext registration from Step 3.</p>
+  <p>Write an <code>AddCustomerApplication</code> extension method on <code>IServiceCollection</code> that registers handlers and validators. Write a separate <code>AddCustomerStore</code> method in the Store project that registers <code>CustomerRepository</code> as the implementation of <code>ICustomerRepository</code>. The Api project calls both from <code>Program.cs</code>.</p>
+
+  <h2>What this looks like in code</h2>
+
+  <p>These are illustrative skeletons showing the shape and relationships of each class — not complete implementations.</p>
+
+  <p>The repository interface lives in Domain and knows nothing about EF Core or SQL:</p>
+  <pre><code>// Domain/Repositories/ICustomerRepository.cs
+public interface ICustomerRepository
+{
+    Task&lt;Customer?&gt; GetByIdAsync(Guid id);
+    Task&lt;Customer?&gt; GetByCustomerNumberAsync(string customerNumber);
+    Task AddAsync(Customer customer);
+    Task UpdateAsync(Customer customer);
+    Task DeleteAsync(Guid id);
+}</code></pre>
+
+  <p>The request and response DTOs are plain classes with no behaviour:</p>
+  <pre><code>// Application/DTOs/CreateCustomerRequest.cs
+public class CreateCustomerRequest
+{
+    public CustomerType CustomerType { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public IndividualProfileRequest? IndividualProfile { get; set; }
+    public CorporateProfileRequest? CorporateProfile { get; set; }
+    public List&lt;IdentificationRequest&gt; Identifications { get; set; } = [];
+    // address and contact fields...
+}
+
+// Application/DTOs/CustomerResponse.cs
+public class CustomerResponse
+{
+    public Guid Id { get; set; }
+    public string CustomerNumber { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public CustomerStatus Status { get; set; }
+    // other fields the caller needs...
+}</code></pre>
+
+  <p>The handler validates, builds the entity graph, persists, and maps to a response. Notice it is doing the construction work directly — this is what moves to the service in Step 5:</p>
+  <pre><code>// Application/Handlers/CreateCustomerHandler.cs
+public class CreateCustomerHandler
+{
+    private readonly ICustomerRepository _repository;
+    private readonly IValidator&lt;CreateCustomerRequest&gt; _validator;
+
+    public CreateCustomerHandler(
+        ICustomerRepository repository,
+        IValidator&lt;CreateCustomerRequest&gt; validator)
+    {
+        _repository = repository;
+        _validator = validator;
+    }
+
+    public async Task&lt;CustomerResponse&gt; HandleAsync(CreateCustomerRequest request)
+    {
+        await _validator.ValidateAndThrowAsync(request);
+
+        var customer = new Customer
+        {
+            Id = Guid.NewGuid(),
+            Email = request.Email,
+            // build profile, identifications, onboarding application...
+        };
+
+        await _repository.AddAsync(customer);
+        return MapToResponse(customer);
+    }
+
+    private static CustomerResponse MapToResponse(Customer customer) => new()
+    {
+        Id = customer.Id,
+        Email = customer.Email,
+        // ...
+    };
+}</code></pre>
+
+  <p>The validator enforces that requests are well-formed before any handler runs:</p>
+  <pre><code>// Application/Validators/CreateCustomerRequestValidator.cs
+public class CreateCustomerRequestValidator : AbstractValidator&lt;CreateCustomerRequest&gt;
+{
+    public CreateCustomerRequestValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.PhoneNumber).NotEmpty().Matches(@"^\+?[1-9]\d{6,14}$");
+        RuleFor(x => x.Identifications).NotEmpty();
+        // profile rules conditional on CustomerType...
+    }
+}</code></pre>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div>
+      <strong>This is not CQRS.</strong> Handler-per-use-case with request and response objects can look like CQRS (Command Query Responsibility Segregation), but it is not the same pattern. CQRS explicitly splits reads and writes at the model level: queries return a flattened read model built from a separate projection or read database; commands go through a different path entirely. Here, <code>GetCustomerHandler</code> and <code>CreateCustomerHandler</code> use the same <code>Customer</code> entity and the same <code>ICustomerRepository</code>. The naming is a stylistic choice — one class per use case — not a CQRS commitment. Full CQRS is a significant architectural investment and is not what you are building.
+    </div>
+  </div>
 
   <h2>What you'll learn</h2>
   <ul>
-    <li>Why the interface belongs to the caller (Application), not the implementer (Store), and what that makes possible</li>
-    <li>What DTOs are, why they are not entities, and what goes wrong when you skip them</li>
-    <li>The handler pattern: small, single-purpose classes that are straightforward to find and straightforward to test</li>
-    <li>Input validation with FluentValidation, and where in the chain it fits</li>
-    <li>Manual DI wiring: registering handlers and validators, and which lifetime to use</li>
+    <li>Why <code>ICustomerRepository</code> belongs in Domain, not in a Store or Application project, and what the dependency direction buys you</li>
+    <li>What DTOs are, why they are not entities, and what breaks if you skip them</li>
+    <li>The handler pattern: small, single-purpose classes that are straightforward to find and test</li>
+    <li>Input validation with FluentValidation, and where in the chain it belongs</li>
+    <li>Manual DI wiring: registering handlers, validators, and the repository implementation</li>
   </ul>
+
+  <h2>Build checklist</h2>
+
+  <p>Use this as a running tracker. Tick each item once you have written and compiled the class — you are done with the step when everything is checked.</p>
+
+  <div style="background:var(--bg-subtle); border:1px solid var(--border); border-radius:var(--radius-md); padding:20px 24px; margin:24px 0;">
+
+    <p style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary); font-weight:600;">Domain</p>
+    <ul style="list-style:none; padding:0; margin:0 0 20px;">
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>CustomerService.Domain/Repositories/ICustomerRepository.cs</code></label></li>
+    </ul>
+
+    <p style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary); font-weight:600;">Store</p>
+    <ul style="list-style:none; padding:0; margin:0 0 20px;">
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>CustomerRepository</code> implementing <code>ICustomerRepository</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>AddCustomerStore</code> DI extension method</label></li>
+    </ul>
+
+    <p style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary); font-weight:600;">Application — DTOs</p>
+    <ul style="list-style:none; padding:0; margin:0 0 20px;">
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>CreateCustomerRequest</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>IndividualProfileRequest</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>CorporateProfileRequest</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>IdentificationRequest</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>UpdateCustomerRequest</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>CustomerResponse</code></label></li>
+    </ul>
+
+    <p style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary); font-weight:600;">Application — Handlers</p>
+    <ul style="list-style:none; padding:0; margin:0 0 20px;">
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>CreateCustomerHandler</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>GetCustomerHandler</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>UpdateCustomerHandler</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>DeleteCustomerHandler</code></label></li>
+    </ul>
+
+    <p style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary); font-weight:600;">Application — Validators</p>
+    <ul style="list-style:none; padding:0; margin:0 0 20px;">
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>CreateCustomerRequestValidator</code></label></li>
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>UpdateCustomerRequestValidator</code></label></li>
+    </ul>
+
+    <p style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary); font-weight:600;">Application — DI</p>
+    <ul style="list-style:none; padding:0; margin:0;">
+      <li style="margin-bottom:8px;"><label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14.5px;"><input type="checkbox" style="width:16px; height:16px; flex-shrink:0; accent-color:var(--accent); cursor:pointer;"> <code>AddCustomerApplication</code> extension method</label></li>
+    </ul>
+
+  </div>
 
   <h2>Where to start</h2>
 
-  <p>Before writing any code, look at what your domain actually needs to do with the database. What operations does a handler need to be able to perform? Those become the method signatures on <code>ICustomerStore</code>. Start there — the interface is the contract everything else depends on, and defining it first forces you to think about what the Application layer actually needs rather than what the Store happens to offer.</p>
+  <p>The repository interface is the right starting point. Look at what operations your handlers will need to perform against the database — those become the method signatures on <code>ICustomerRepository</code>. Define the interface in Domain first. Then add <code>CustomerRepository</code> in Store and have it implement the interface using the DbContext you already have.</p>
 
-  <p>Once the interface exists, think about the DTO shapes from the caller's perspective, not from the entity's perspective. What would someone sending a request need to provide? What would they expect to get back? Let the use cases drive the shapes, not the database schema.</p>
+  <p>Once the interface and its implementation exist, think about the DTO shapes from the caller's perspective: what would someone need to provide to create a customer? What would they expect to get back? Let the use cases drive the shapes, not the database schema.</p>
 
-  <p>Pick one handler and get it working end-to-end before writing the others. The path from DTO in, through the interface, to DTO out is the pattern you will repeat for every use case. Getting the first one right establishes the template.</p>
+  <p>Pick one handler and get it working end-to-end — validate, build, persist, respond — before writing the others. The pattern repeats; getting the first one right makes the rest straightforward.</p>
 
   <div class="callout callout-accent">
     <span class="callout-icon">◆</span>
-    <div><strong>C# depth moment: <code>async</code> all the way down.</strong> Your store is async. Your handlers are async. Once you mark one method <code>async</code>, the change propagates up the call stack. This is by design. <code>await</code> does not block a thread — it returns control to the caller while the I/O finishes. That is why a server with a few threads can serve thousands of concurrent requests. If you have not read carefully about <code>Task</code> and what <code>await</code> actually does at the runtime level, now is the time.</div>
+    <div><strong>C# depth moment: <code>async</code> all the way down.</strong> Your repository is async. Your handlers are async. Once you mark one method <code>async</code>, the change propagates up the call stack. This is by design. <code>await</code> does not block a thread — it returns control to the caller while the I/O finishes. That is why a server with a few threads can serve thousands of concurrent requests. If you have not read carefully about <code>Task</code> and what <code>await</code> actually does at the runtime level, now is the time.</div>
   </div>
 
   <h2>Resources</h2>
@@ -145,11 +305,18 @@
         <div class="resource-note">Writing validators, common rule patterns, and wiring into DI.</div>
       </div>
     </a>
+    <a class="resource" href="https://auth0.com/blog/dependency-injection-in-dotnet-core/#The-Dependency-Problem" target="_blank" rel="noopener">
+      <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      <div class="resource-content">
+        <div class="resource-title">The dependency problem</div>
+        <div class="resource-note">Auth0: why tight coupling is a problem, what DI solves, and how the container wires it — good complement to the Microsoft docs.</div>
+      </div>
+    </a>
     <a class="resource" href="https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection-usage" target="_blank" rel="noopener">
       <svg class="resource-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
       <div class="resource-content">
         <div class="resource-title">Dependency injection in .NET</div>
-        <div class="resource-note">Scoped, Singleton, Transient — what they mean and which one fits handlers.</div>
+        <div class="resource-note">Scoped, Singleton, Transient — what they mean and which one fits handlers and repositories.</div>
       </div>
     </a>
     <a class="resource" href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/" target="_blank" rel="noopener">
@@ -164,11 +331,11 @@
   <div class="questions">
     <h4>Questions to be able to answer</h4>
     <ol>
-      <li>Why does <code>ICustomerStore</code> live in Application but its implementation live in Store? What would break if it were the other way around?</li>
-      <li>What is the difference between a <code>CustomerResponse</code> and a <code>Customer</code> entity? Give a concrete example of something that would go wrong if you returned the entity directly.</li>
+      <li>Why does <code>ICustomerRepository</code> live in Domain rather than in Store or Application? What would break if it lived in Store?</li>
+      <li>What is the difference between a <code>CustomerResponse</code> and a <code>Customer</code> entity? Give a concrete example of what goes wrong if you return the entity directly.</li>
       <li>What lifetime did you register the handlers with, and why that one rather than Singleton or Transient?</li>
       <li>If a request arrives with an invalid email address, at what point in the chain is it rejected, and why there rather than inside the handler?</li>
-      <li>Could you replace MSSQL with a different database without changing any code in the Application layer? What makes that possible?</li>
+      <li>Your <code>CreateCustomerHandler</code> is doing entity construction directly. What is the problem with that? What will Step 5 do about it?</li>
     </ol>
   </div>
 

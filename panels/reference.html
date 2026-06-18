@@ -5,6 +5,33 @@
     <p class="header-subtitle">Things you might need to look up later.</p>
   </div>
 
+  <h2>Architecture overview</h2>
+
+  <p>Both services follow the same pattern: a <strong>layered architecture with dependency inversion</strong>. The core rule is that all dependencies point inward toward Domain. Domain knows nothing about databases, HTTP, or any framework. Every other layer depends on Domain, never the other way around.</p>
+
+  <div class="mermaid">
+graph TD
+    Api --> Application
+    Api --> Service
+    Api --> Store
+    Application --> Service
+    Application --> Domain
+    Service --> Domain
+    Store --> Domain
+    Common --> Domain
+
+    style Domain fill:#3b3080,stroke:#7c6fc4,color:#fff
+  </div>
+
+  <p>At runtime, a request travels: <strong>Controller → Handler → Service → Repository → Database</strong>. The repository interface (<code>ICustomerRepository</code>) is defined in Domain and implemented in Store — which is why both Service and Store point at Domain.</p>
+
+  <div class="callout">
+    <span class="callout-icon">⌥</span>
+    <div>
+      <strong>This is not CQRS.</strong> The handler-per-use-case pattern with request and response objects can look like CQRS (Command Query Responsibility Segregation), but CQRS is a distinct and more involved pattern. In CQRS, reads and writes are fundamentally separated: queries return a dedicated read model built from a separate projection or read database; commands go through a different path and often emit events. Here, <code>GetCustomerHandler</code> and <code>CreateCustomerHandler</code> use the same <code>Customer</code> entity and the same <code>ICustomerRepository</code>. The naming is a stylistic choice — one class per use case — not a CQRS commitment.
+    </div>
+  </div>
+
   <h2>The layered structure</h2>
   <p>Both services use the same layers. Dependencies point inward, toward Domain.</p>
   <table>
@@ -12,12 +39,12 @@
       <tr><th>Layer</th><th>Holds</th><th>References</th></tr>
     </thead>
     <tbody>
-      <tr><td><strong>Domain</strong></td><td>Entities, enums, business rules</td><td>Nothing</td></tr>
-      <tr><td><strong>Application</strong></td><td>Interfaces, DTOs, validation</td><td>Domain, Common</td></tr>
-      <tr><td><strong>Service</strong></td><td>Use-case classes (business orchestration)</td><td>Application, Domain</td></tr>
-      <tr><td><strong>Store</strong></td><td>EF Core, DbContext, interface implementations</td><td>Application, Domain</td></tr>
-      <tr><td><strong>Api</strong></td><td>Controllers, Program.cs, composition root</td><td>Service, Store, Application, Domain</td></tr>
-      <tr><td><strong>Common</strong></td><td>Shared helpers (e.g. ServiceResult)</td><td>Nothing or Domain</td></tr>
+      <tr><td><strong>Domain</strong></td><td>Entities, enums, repository interfaces (e.g. <code>ICustomerRepository</code>)</td><td>Nothing</td></tr>
+      <tr><td><strong>Service</strong></td><td>Business flows and rules (<code>ICustomerOnboardingService</code> + implementation)</td><td>Domain, Common</td></tr>
+      <tr><td><strong>Application</strong></td><td>Handlers, DTOs, validators</td><td>Service, Domain, Common</td></tr>
+      <tr><td><strong>Store</strong></td><td>EF Core, DbContext, repository implementations</td><td>Domain</td></tr>
+      <tr><td><strong>Api</strong></td><td>Controllers, Program.cs, composition root</td><td>Application, Service, Store</td></tr>
+      <tr><td><strong>Common</strong></td><td>Shared types (e.g. <code>ServiceResult</code>)</td><td>Nothing</td></tr>
     </tbody>
   </table>
 
