@@ -656,6 +656,196 @@
     .footer-btn.next { text-align: left; }
   }
 
+  /* Panel vertical tab system */
+  .panel-tabs {
+    display: flex;
+    gap: 0;
+    min-height: 400px;
+  }
+
+  .panel-tab-rail {
+    display: flex;
+    flex-direction: column;
+    width: 112px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding: 0 8px 0 0;
+    gap: 2px;
+  }
+
+  .panel-tab-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 10px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 400;
+    transition: all 0.12s ease;
+  }
+
+  .panel-tab-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .panel-tab-btn.active {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .panel-tab-content {
+    flex: 1;
+    min-width: 0;
+    padding-left: 32px;
+  }
+
+  /* Named notes (Marilyn, Stylianos) */
+  .named-notes-section {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .named-notes-header {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+  }
+
+  .named-notes-body {
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--text-primary);
+  }
+
+  .named-notes-body p { margin-bottom: 10px; }
+  .named-notes-body p:last-child { margin-bottom: 0; }
+
+  /* Community notes */
+  .notes-section-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    margin: 28px 0 12px;
+  }
+
+  .notes-section-label:first-child { margin-top: 0; }
+
+  .notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .note-card {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+  }
+
+  .note-card-text {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 5px;
+  }
+
+  .note-card-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  .notes-empty, .notes-loading {
+    font-size: 14px;
+    color: var(--text-tertiary);
+  }
+
+  .notes-empty {
+    padding: 20px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .notes-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .notes-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-primary);
+    background: var(--bg);
+    resize: vertical;
+    transition: border-color 0.15s ease;
+  }
+
+  .notes-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .notes-submit {
+    align-self: flex-start;
+    padding: 7px 18px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .notes-submit:hover:not(:disabled) { opacity: 0.85; }
+
+  .notes-submit:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 760px) {
+    .panel-tabs { flex-direction: column; }
+    .panel-tab-rail {
+      flex-direction: row;
+      width: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 0 0 8px;
+    }
+    .panel-tab-content {
+      padding-left: 0;
+      padding-top: 24px;
+    }
+  }
+
   /* Print */
   @media print {
     .sidebar, .footer-nav, .done-toggle, .mobile-toggle { display: none; }

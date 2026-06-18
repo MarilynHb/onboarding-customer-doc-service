@@ -1,3 +1,34 @@
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import {
+  getFirestore, collection, query, orderBy,
+  onSnapshot, addDoc, serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// TODO: Replace with your Firebase project config — console.firebase.google.com › Project settings › Your apps
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyA8uTtDUmD1ld4BK1Ew_g4fyQME2OVtj_o',
+  authDomain: 'onboarding-notes.firebaseapp.com',
+  projectId: 'onboarding-notes',
+  storageBucket: 'onboarding-notes.firebasestorage.app',
+  messagingSenderId: '910709789931',
+  appId: '1:910709789931:web:a956793eff8b1707245aae'
+};
+// Firestore security rules (paste into Firebase console › Firestore › Rules):
+// rules_version = '2';
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     match /notes/{panelId}/items/{item} { allow read, write: if true; }
+//   }
+// }
+
+let db = null;
+try {
+  const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApps()[0];
+  db = getFirestore(app);
+} catch {}
+
+let activeNotesUnsubscribe = null;
+
 const TABS = [
   'overview',
   'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8',
@@ -202,6 +233,11 @@ async function fetchPanelHtml(name) {
 }
 
 async function renderPanel(name) {
+  if (activeNotesUnsubscribe) {
+    activeNotesUnsubscribe();
+    activeNotesUnsubscribe = null;
+  }
+
   const panelsContainer = document.getElementById('panels');
   if (!panelsContainer) return;
 
@@ -215,6 +251,7 @@ async function renderPanel(name) {
     panelsContainer.innerHTML = `<div class="panel active"><div class="callout callout-accent"><span class="callout-icon">!</span><div>Unable to load content for ${name}. Please refresh the page.</div></div></div>`;
   }
 
+  wrapWithTabs(panelsContainer.querySelector('.panel[data-has-notes]'));
   attachPanelEvents();
   if (window.mermaid) {
     try {
@@ -342,6 +379,189 @@ async function initializeSidebar() {
   } catch {
     await switchTab('overview');
   }
+}
+
+function wrapWithTabs(panelEl) {
+  if (!panelEl) return;
+
+  const namedNotesEls = Array.from(panelEl.querySelectorAll(':scope > .named-notes'));
+  namedNotesEls.forEach(el => el.remove());
+
+  const rail = document.createElement('div');
+  rail.className = 'panel-tab-rail';
+
+  const guideBtn = document.createElement('button');
+  guideBtn.type = 'button';
+  guideBtn.className = 'panel-tab-btn active';
+  guideBtn.dataset.tab = 'guide';
+  guideBtn.textContent = 'Guide';
+
+  const notesBtn = document.createElement('button');
+  notesBtn.type = 'button';
+  notesBtn.className = 'panel-tab-btn';
+  notesBtn.dataset.tab = 'notes';
+  notesBtn.textContent = 'Notes';
+
+  rail.appendChild(guideBtn);
+  rail.appendChild(notesBtn);
+
+  const guideContent = document.createElement('div');
+  guideContent.className = 'panel-tab-content';
+  guideContent.dataset.tabContent = 'guide';
+  while (panelEl.firstChild) guideContent.appendChild(panelEl.firstChild);
+
+  const notesContent = document.createElement('div');
+  notesContent.className = 'panel-tab-content';
+  notesContent.dataset.tabContent = 'notes';
+  notesContent.hidden = true;
+  buildNotesShell(notesContent, namedNotesEls);
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'panel-tabs';
+  wrapper.appendChild(rail);
+  wrapper.appendChild(guideContent);
+  wrapper.appendChild(notesContent);
+  panelEl.appendChild(wrapper);
+
+  rail.addEventListener('click', e => {
+    const btn = e.target.closest('.panel-tab-btn');
+    if (!btn) return;
+    const tab = btn.dataset.tab;
+    rail.querySelectorAll('.panel-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    guideContent.hidden = tab !== 'guide';
+    notesContent.hidden = tab !== 'notes';
+    if (tab === 'notes' && !notesContent.dataset.initialized) {
+      notesContent.dataset.initialized = '1';
+      initNotesTab(notesContent, panelEl.dataset.panel);
+    }
+  });
+}
+
+function buildNotesShell(container, namedNotesEls) {
+  namedNotesEls.forEach(el => {
+    el.removeAttribute('hidden');
+    const hasContent = el.children.length > 0 || el.textContent.trim().length > 0;
+    if (!hasContent) return;
+
+    const section = document.createElement('div');
+    section.className = 'named-notes-section';
+
+    const header = document.createElement('div');
+    header.className = 'named-notes-header';
+    header.textContent = `${el.dataset.author}'s Notes`;
+    section.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'named-notes-body';
+    while (el.firstChild) body.appendChild(el.firstChild);
+    section.appendChild(body);
+    container.appendChild(section);
+  });
+
+  const communityLabel = document.createElement('div');
+  communityLabel.className = 'notes-section-label';
+  communityLabel.textContent = 'Community Notes';
+  container.appendChild(communityLabel);
+
+  const notesList = document.createElement('div');
+  notesList.className = 'notes-list';
+  notesList.innerHTML = '<p class="notes-loading">Loading…</p>';
+  container.appendChild(notesList);
+
+  const addLabel = document.createElement('div');
+  addLabel.className = 'notes-section-label';
+  addLabel.textContent = 'Add a note';
+  container.appendChild(addLabel);
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'notes-textarea';
+  textarea.placeholder = 'Share a tip, observation, or question about this step…';
+
+  const submitBtn = document.createElement('button');
+  submitBtn.type = 'button';
+  submitBtn.className = 'notes-submit';
+  submitBtn.textContent = 'Submit';
+  submitBtn.disabled = true;
+
+  textarea.addEventListener('input', () => {
+    submitBtn.disabled = !textarea.value.trim();
+  });
+
+  const form = document.createElement('div');
+  form.className = 'notes-form';
+  form.appendChild(textarea);
+  form.appendChild(submitBtn);
+  container.appendChild(form);
+
+  container._notesList = notesList;
+  container._textarea = textarea;
+  container._submitBtn = submitBtn;
+}
+
+function initNotesTab(container, panelId) {
+  if (!db) {
+    container._notesList.innerHTML = '<p class="notes-empty">Community notes require Firebase — add your project config to onboarding-sidebar.js.</p>';
+    return;
+  }
+
+  const notesCol = collection(db, 'notes', panelId, 'items');
+  const q = query(notesCol, orderBy('createdAt', 'asc'));
+
+  activeNotesUnsubscribe = onSnapshot(q, snapshot => {
+    const notes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderNotesList(container._notesList, notes);
+  }, err => {
+    console.error('Notes snapshot error:', err);
+    container._notesList.innerHTML = '<p class="notes-empty">Could not load notes.</p>';
+  });
+
+  container._submitBtn.addEventListener('click', async () => {
+    const text = container._textarea.value.trim();
+    if (!text) return;
+    container._submitBtn.disabled = true;
+    container._submitBtn.textContent = 'Saving…';
+    try {
+      await addDoc(notesCol, { text, createdAt: serverTimestamp() });
+      container._textarea.value = '';
+      container._submitBtn.textContent = 'Submit';
+    } catch (err) {
+      console.error('Failed to save note:', err);
+      container._submitBtn.textContent = 'Submit';
+      container._submitBtn.disabled = false;
+    }
+  });
+}
+
+function renderNotesList(container, notes) {
+  if (!notes.length) {
+    container.innerHTML = '<p class="notes-empty">No notes yet. Be the first to add one.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  notes.forEach(note => {
+    const card = document.createElement('div');
+    card.className = 'note-card';
+
+    const text = document.createElement('div');
+    text.className = 'note-card-text';
+    text.textContent = note.text;
+
+    const meta = document.createElement('div');
+    meta.className = 'note-card-meta';
+    meta.textContent = note.createdAt ? formatNoteTime(note.createdAt.toDate()) : 'Just now';
+
+    card.appendChild(text);
+    card.appendChild(meta);
+    container.appendChild(card);
+  });
+}
+
+function formatNoteTime(date) {
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diffSec < 60) return 'Just now';
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 document.addEventListener('DOMContentLoaded', initializeSidebar);

@@ -1,4 +1,4 @@
-<div class="panel" data-panel="c3">
+<div class="panel" data-panel="c3" data-has-notes="true">
   <div class="header">
     <div class="breadcrumb">Customer Service · Step 3</div>
     <h1>The Store layer</h1>
@@ -8,6 +8,9 @@
       <span class="meta-pill">First migration</span>
     </div>
   </div>
+
+  <div class="named-notes" data-author="Marilyn" hidden></div>
+  <div class="named-notes" data-author="Stylianos" hidden></div>
 
   <p>The domain exists in memory. Now you make it persistent. By the end of this step a customer, their profile, their identifications, and their onboarding application are saved to a real MSSQL database and you can read them back. No APIs yet, no service layer, no validators. Just the domain meeting the database.</p>
 
