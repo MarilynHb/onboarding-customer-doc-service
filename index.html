@@ -656,6 +656,11 @@
     .footer-btn.next { text-align: left; }
   }
 
+  /* Expand content area when a tab panel is active */
+  .content:has(.panel-tabs) {
+    max-width: none;
+  }
+
   /* Panel vertical tab system */
   .panel-tabs {
     display: flex;
