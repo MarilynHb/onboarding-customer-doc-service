@@ -1,7 +1,8 @@
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import {
   getFirestore, collection, query, orderBy,
-  onSnapshot, addDoc, serverTimestamp
+  onSnapshot, addDoc, serverTimestamp,
+  deleteDoc, doc, setDoc, updateDoc, deleteField
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // TODO: Replace with your Firebase project config — console.firebase.google.com › Project settings › Your apps
@@ -18,6 +19,7 @@ const FIREBASE_CONFIG = {
 // service cloud.firestore {
 //   match /databases/{database}/documents {
 //     match /notes/{panelId}/items/{item} { allow read, write: if true; }
+//     match /progress/{document} { allow read, write: if true; }
 //   }
 // }
 
@@ -181,12 +183,26 @@ function navigate(direction) {
   }
 }
 
-function toggleMilestone(name) {
-  const progress = getProgress();
-  progress[name] = !progress[name];
-  if (!progress[name]) delete progress[name];
-  saveProgress(progress);
-  renderProgressUI();
+async function toggleMilestone(name) {
+  if (!db) {
+    const progress = getProgress();
+    progress[name] = !progress[name];
+    if (!progress[name]) delete progress[name];
+    saveProgress(progress);
+    renderProgressUI();
+    return;
+  }
+  const progressDoc = doc(db, 'progress', 'shared');
+  const isDone = !getProgress()[name];
+  try {
+    if (isDone) {
+      await setDoc(progressDoc, { [name]: true }, { merge: true });
+    } else {
+      await updateDoc(progressDoc, { [name]: deleteField() });
+    }
+  } catch (err) {
+    console.error('Failed to save progress:', err);
+  }
 }
 
 function renderProgressUI() {
@@ -368,6 +384,7 @@ async function initializeSidebar() {
   sidebar.innerHTML = buildSidebarHtml();
   attachEventHandlers();
   attachModalEvents();
+  initProgressSync();
 
   try {
     const last = localStorage.getItem(LAST_TAB_KEY);
@@ -379,6 +396,20 @@ async function initializeSidebar() {
   } catch {
     await switchTab('overview');
   }
+}
+
+function initProgressSync() {
+  if (!db) return;
+  const progressDoc = doc(db, 'progress', 'shared');
+  onSnapshot(progressDoc, snapshot => {
+    const data = snapshot.exists() ? snapshot.data() : {};
+    const progress = {};
+    MILESTONES.forEach(m => { if (data[m]) progress[m] = true; });
+    saveProgress(progress);
+    renderProgressUI();
+  }, err => {
+    console.error('Progress sync error:', err);
+  });
 }
 
 function wrapWithTabs(panelEl) {
@@ -508,8 +539,8 @@ function initNotesTab(container, panelId) {
   const q = query(notesCol, orderBy('createdAt', 'asc'));
 
   activeNotesUnsubscribe = onSnapshot(q, snapshot => {
-    const notes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderNotesList(container._notesList, notes);
+    const notes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderNotesList(container._notesList, notes, notesCol);
   }, err => {
     console.error('Notes snapshot error:', err);
     container._notesList.innerHTML = '<p class="notes-empty">Could not load notes.</p>';
@@ -532,7 +563,7 @@ function initNotesTab(container, panelId) {
   });
 }
 
-function renderNotesList(container, notes) {
+function renderNotesList(container, notes, notesCol) {
   if (!notes.length) {
     container.innerHTML = '<p class="notes-empty">No notes yet. Be the first to add one.</p>';
     return;
@@ -550,8 +581,22 @@ function renderNotesList(container, notes) {
     meta.className = 'note-card-meta';
     meta.textContent = note.createdAt ? formatNoteTime(note.createdAt.toDate()) : 'Just now';
 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'note-delete';
+    deleteBtn.textContent = '×';
+    deleteBtn.title = 'Delete note';
+    deleteBtn.addEventListener('click', async () => {
+      try {
+        await deleteDoc(doc(notesCol, note.id));
+      } catch (err) {
+        console.error('Failed to delete note:', err);
+      }
+    });
+
     card.appendChild(text);
     card.appendChild(meta);
+    card.appendChild(deleteBtn);
     container.appendChild(card);
   });
 }
