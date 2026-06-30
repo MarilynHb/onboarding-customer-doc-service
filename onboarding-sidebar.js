@@ -35,7 +35,8 @@ const TABS = [
   'overview',
   'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8',
   'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8',
-  'reference'
+  'reference',
+  'git'
 ];
 
 const TAB_LABELS = {
@@ -56,7 +57,8 @@ const TAB_LABELS = {
   d6: 'Api + file handling',
   d7: 'Connecting the services',
   d8: 'Full stack + stretch',
-  reference: 'Reference card'
+  reference: 'Reference card',
+  git: 'Git guide'
 };
 
 const MILESTONES = [
@@ -126,6 +128,13 @@ function buildSidebarHtml() {
       <button class="nav-item" data-tab="reference">
         <span class="nav-num">∗</span>
         <span>Reference card</span>
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <button class="nav-item" data-tab="git">
+        <span class="nav-num">⎇</span>
+        <span>Git guide</span>
       </button>
     </div>
   `;

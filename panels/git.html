@@ -1,0 +1,98 @@
+<div class="panel" data-panel="git">
+  <div class="header">
+    <div class="breadcrumb">Git guide</div>
+    <h1>Git &amp; Visual Studio</h1>
+    <p class="header-subtitle">A tiered reference — start at Tier 1, return to the others as you need them.</p>
+  </div>
+
+  <h2>Tier 1 — Must know now</h2>
+
+  <h3>Commits = snapshots</h3>
+  <p>A commit is a snapshot of your entire project at a point in time — not a diff, not a list of changes. Git stores the full state and figures out what changed. When you look at history you are looking at a chain of snapshots. Keep this mental model; everything else (branches, checkout, reset) makes more sense with it.</p>
+
+  <h3>Branches</h3>
+  <p>A branch is just a named pointer to a commit. Creating one costs almost nothing. The point: you can work on something without touching <code>main</code>. In Visual Studio, the current branch is shown in the bottom-left status bar. Click it to create a new branch or switch to an existing one.</p>
+  <div class="callout">
+    <span class="callout-icon">💡</span>
+    <div>Always branch off <code>main</code> before starting new work. Never commit directly to <code>main</code> unless your team has explicitly said it's fine for that repo.</div>
+  </div>
+
+  <h3>Staging vs. committing</h3>
+  <p>In the <strong>Git Changes</strong> window (View → Git Changes), modified files appear under <em>Changes</em>. You <strong>stage</strong> a file by clicking the <code>+</code> icon next to it — this moves it to <em>Staged Changes</em>. Only staged files go into the next commit. This lets you commit a logical unit of work even if you have other unrelated edits sitting around.</p>
+  <table>
+    <thead><tr><th>Action</th><th>Where in VS</th></tr></thead>
+    <tbody>
+      <tr><td>Stage a file</td><td>Git Changes → click <code>+</code> next to the file</td></tr>
+      <tr><td>Stage all</td><td>Click <code>+</code> in the <em>Changes</em> header</td></tr>
+      <tr><td>Commit staged</td><td>Type a message, click <strong>Commit Staged</strong></td></tr>
+      <tr><td>Commit all (skip staging)</td><td><strong>Commit All</strong> button</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Checkout: switching branches and detached HEAD</h3>
+  <p>Checking out a branch updates your working files to match that branch's latest snapshot. Click the branch name in the status bar and pick the branch you want.</p>
+  <p>Checking out a <em>specific commit</em> (instead of a branch) puts you in <strong>detached HEAD</strong> state — you're no longer on any branch. Changes you make here won't be saved to any branch unless you explicitly create one. VS will warn you. If you end up here accidentally, just switch back to your branch via the status bar.</p>
+
+  <h3>Merging and resolving conflicts</h3>
+  <p>Merging brings changes from one branch into another. In VS: Git Changes → Branch → Merge (or use the Git menu). If the same lines were edited in both branches, Git can't decide automatically — you'll get a <strong>conflict</strong>. VS opens its three-panel merge editor: left is your branch, right is the incoming branch, bottom is the result. For each conflict, click <em>Accept Current</em>, <em>Accept Incoming</em>, or edit the result pane directly. Save and commit when done.</p>
+
+  <h3>Stash: shelve and unshelve</h3>
+  <p>Stashing saves your uncommitted work to a temporary shelf so you can switch branches without losing it. In Git Changes, click the three-dot menu (⋯) → <strong>Stash All</strong>. To restore it later: same menu → <strong>Pop Stash</strong> (restores and removes from the stash) or <strong>Apply Stash</strong> (restores but keeps the stash entry).</p>
+
+  <h3>.gitignore — what not to track</h3>
+  <p><code>bin/</code> and <code>obj/</code> are build output — they're regenerated every build, they're large, and they differ per machine. <code>.vs/</code> and <code>*.user</code> files store your personal IDE settings (window layout, breakpoints). None of these belong in source control. A standard <code>.gitignore</code> for .NET excludes them automatically. If you accidentally committed them, VS can help you remove them from tracking without deleting the files.</p>
+
+  <h3>Reset: soft/mixed vs. hard</h3>
+  <p>Reset moves the branch pointer backward to an earlier commit. The dangerous difference:</p>
+  <table>
+    <thead><tr><th>Mode</th><th>Moves HEAD</th><th>Your changes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Soft</strong></td><td>Yes</td><td>Kept, staged</td></tr>
+      <tr><td><strong>Mixed</strong> (default)</td><td>Yes</td><td>Kept, unstaged</td></tr>
+      <tr><td><strong>Hard</strong></td><td>Yes</td><td><strong>Discarded — gone</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <span class="callout-icon">⚠️</span>
+    <div><strong>Hard reset discards uncommitted work permanently.</strong> Double-check before running it. If you already pushed commits and then hard-reset, you'll need a force-push to update the remote — see Tier 2 for why that's dangerous.</div>
+  </div>
+
+  <h3>Pull vs. Fetch in Visual Studio</h3>
+  <p><strong>Fetch</strong> downloads the latest data from the remote but does not change your working files. It updates VS's knowledge of what the remote looks like.</p>
+  <p><strong>Pull</strong> = Fetch + Merge. It downloads and immediately merges the remote branch into your current branch.</p>
+  <p>When VS says "your branch is X commits behind origin/main", it means the remote has X commits that you haven't merged yet. Fetch first to see what's incoming, then Pull when you're ready.</p>
+
+  <h2>Tier 2 — Good to know soon</h2>
+
+  <h3>Reflog: the undo panic button</h3>
+  <p>The reflog is a local log of everywhere HEAD has pointed. Even after a hard reset or an accidental branch delete, the commits are still there — Git just isn't pointing at them. Run <code>git reflog</code> in the terminal to see the list and find the SHA you want to recover, then <code>git checkout &lt;sha&gt;</code> to get back to it. You have a window of at least 30 days before Git garbage-collects unreachable commits.</p>
+
+  <h3>Force-push danger</h3>
+  <p>A regular push is rejected if the remote has commits you don't have locally (it protects you). A <strong>force-push</strong> (<code>--force</code>) overrides that check and rewrites the remote history. If anyone else has pulled those commits, their history now diverges from yours — they'll have to do painful reconciliation. <strong>Never force-push to a shared branch</strong> (e.g. <code>main</code>, <code>develop</code>) without explicit team agreement.</p>
+
+  <h3>Configuration Manager</h3>
+  <p>Build → Configuration Manager lets you set each project in your solution to <em>Debug</em> or <em>Release</em> independently. Debug builds include symbol files and disable optimisations — useful for stepping through code. Release builds are optimised for production. You'll normally leave everything on Debug during development and switch to Release before publishing.</p>
+
+  <h3>Multiple startup projects</h3>
+  <p>If you need to run CustomerService and DocumentService at the same time: right-click the solution → <em>Set Startup Projects</em> → choose <em>Multiple startup projects</em> and set each relevant project to <em>Start</em>. F5 will then launch all of them together.</p>
+
+  <h3>Commit hygiene</h3>
+  <p>Small commits are easier to review, easier to revert, and easier to understand six months later. A good commit message says <em>why</em> the change was made, not just what changed (the diff already shows what). Aim for one logical change per commit. A useful format: a short imperative headline (≤72 chars), then an optional blank line followed by more detail if needed.</p>
+
+  <h3>Branch naming and workflow</h3>
+  <p>Ask your team what convention they use. Common patterns: <code>feature/short-description</code>, <code>fix/ticket-number-description</code>. Consistent names make the branch list readable and help CI pipelines apply the right rules automatically.</p>
+
+  <h2>Tier 3 — Later, if it comes up</h2>
+
+  <h3>Rebase</h3>
+  <p>Rebase replays your commits on top of another branch instead of creating a merge commit. The result is a cleaner, linear history. It's worth learning once you've seen enough merges to understand what it's replacing — the mechanics are straightforward but the mental model shift takes a few rounds.</p>
+
+  <h3>.sln / .csproj conflict resolution</h3>
+  <p>Solution and project files are XML. Conflicts in them usually look worse than they are — they often happen when two people add a new project or NuGet package at the same time. Open the conflict in VS's merge editor, compare the two sides, and manually reconstruct the correct XML (usually both additions should be kept). Validate by reloading the solution.</p>
+
+  <h3>Cherry-pick</h3>
+  <p>Cherry-pick applies a single commit from one branch onto another, without merging the whole branch. Useful when a bug fix was made on a feature branch and you need it on <code>main</code> before the feature is ready. In VS: Git menu → Cherry-Pick (or use the terminal: <code>git cherry-pick &lt;sha&gt;</code>).</p>
+
+  <h3>Tags</h3>
+  <p>Tags are named pointers to a specific commit that don't move — unlike branches. Typically used to mark release versions (<code>v1.0.0</code>). Creating a tag: <code>git tag v1.0.0</code>. Tags aren't pushed by default; use <code>git push origin --tags</code> to share them.</p>
+</div>
